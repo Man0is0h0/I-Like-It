@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "lib": ["deno.window"],
+    "strict": true
+  },
+  "lint": {
+    "files": {
+      "include": ["supabase/functions/"]
+    }
+  },
+  "fmt": {
+    "files": {
+      "include": ["supabase/functions/"]
+    }
+  },
+  "imports": {
+    "@supabase/supabase-js": "jsr:@supabase/supabase-js@^2"
+  }
+}

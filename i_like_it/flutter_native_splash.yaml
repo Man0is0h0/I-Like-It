@@ -1,0 +1,15 @@
+flutter_native_splash:
+  color: "#F3F4F6"
+  color_dark: "#111827"
+  image: "assets/splash_logo.png" # Transparent 1x1 PNG to hide default logo
+  fullscreen: true
+  
+  android_12:
+    color: "#F3F4F6"
+    color_dark: "#111827"
+    icon_background_color: "#F3F4F6"
+    icon_background_color_dark: "#111827"
+    image: "assets/splash_logo.png" # Transparent 1x1 PNG
+
+
+

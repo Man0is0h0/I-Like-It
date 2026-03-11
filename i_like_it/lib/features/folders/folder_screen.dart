@@ -1,0 +1,1008 @@
+import 'package:flutter/material.dart';
+import 'dart:ui'; // For BackdropFilter
+import '../../core/database/database_helper.dart';
+import '../../core/models/folder_model.dart';
+import '../../core/utils/metadata_extractor.dart';
+import '../../core/widgets/link_saved_popup.dart';
+import '../../theme/app_theme.dart';
+import 'add_folder_dialog.dart';
+import 'edit_folder_dialog.dart';
+import '../../core/widgets/gradient_scaffold.dart'; // New
+import '../../core/widgets/glass_container.dart'; // New
+import '../links/link_screen.dart';
+import '../links/folder_suggestion_dialog.dart';
+import 'package:flutter/services.dart';
+import '../search/search_delegate.dart';
+import '../../core/sync/sync_manager.dart';
+import 'dart:async';
+import '../../core/auth/user_session_manager.dart';
+import '../../core/theme/theme_manager.dart';
+import '../settings/recovery_settings.dart';
+import '../admin/admin_screen.dart';
+import '../onboarding/initial_setup_screen.dart';
+
+class FolderScreen extends StatefulWidget {
+  final String? sharedLink;
+
+  const FolderScreen({super.key, this.sharedLink});
+
+  @override
+  State<FolderScreen> createState() => _FolderScreenState();
+}
+
+class _FolderScreenState extends State<FolderScreen> with WidgetsBindingObserver {
+  List<Folder> folders = [];
+  bool _isAdmin = false;
+  bool _isLoading = true; // Added loading state
+  StreamSubscription? _syncSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this); // Register observer
+    _checkAdmin();
+    _init(); // This now handles loading logic
+    
+    // Listen for sync updates
+    _syncSubscription = SyncManager.instance.onSyncCompleted.listen((_) {
+      if (mounted) {
+        _loadFolders(silent: true); // Silent refresh on sync
+        _checkAdmin();
+      }
+    });
+
+    // Listen for local DB changes (e.g. from Share Intent)
+    DatabaseHelper.instance.onDatabaseChanged.listen((_) {
+      print('[FOLDER_SCREEN] Database changed, reloading...');
+      if (mounted) {
+        _loadFolders(silent: true);
+      }
+    });
+  }
+
+  // ... (dispose and didChangeAppLifecycleState remain same) ...
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _syncSubscription?.cancel();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      print('[FOLDER_SCREEN] App resumed, reloading folders...');
+      _loadFolders(silent: true);
+    }
+  }
+
+  // ... (checkAdmin, handleLogout remain same) ...
+
+  Future<void> _checkAdmin() async {
+    try {
+      final role = await SyncManager.instance.remoteDataSource.fetchUserRole();
+      if (mounted && role == 'admin') {
+        setState(() => _isAdmin = true);
+      }
+        } catch (_) {}
+  }
+
+  Future<void> _handleLogout() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Logout?'),
+        content: const Text(
+          'Are you sure you want to log out? You will need your Recovery Code to sign back in.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Log Out'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      await UserSessionManager.clearSession();
+      await DatabaseHelper.instance.clearAllData();
+      SyncManager.instance.resetUserCreated();
+      
+      if (mounted) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => InitialSetupScreen()),
+          (route) => false,
+        );
+      }
+    }
+  }
+
+  /// Load folders first, then show picker if app opened via share
+  Future<void> _init() async {
+    print('[FOLDER_SCREEN] Initializing, sharedLink: ${widget.sharedLink}');
+    await _loadFolders(); // Default is non-silent (shows loading)
+
+    if (!mounted) {
+      print('[FOLDER_SCREEN] Not mounted after loading folders');
+      return;
+    }
+
+    if (widget.sharedLink != null) {
+      print('[FOLDER_SCREEN] Shared link detected, scheduling folder picker');
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        print('[FOLDER_SCREEN] Post frame callback - showing folder picker');
+        _showFolderPicker(widget.sharedLink!);
+      });
+    }
+  }
+
+  /// Load folders safely
+  Future<void> _loadFolders({bool silent = false}) async {
+    // If not silent, we want to show loading state
+    if (!silent && mounted) {
+       setState(() => _isLoading = true);
+    }
+
+    // Capture start time to ensure minimum loading duration
+    final startTime = DateTime.now();
+    // Duration for the welcome animation to complete comfortably
+    final minDuration = silent ? Duration.zero : const Duration(milliseconds: 3500);
+
+    final result = await DatabaseHelper.instance.getFolders();
+
+    // Calculate remaining time to wait
+    if (!silent) {
+      final elapsed = DateTime.now().difference(startTime);
+      if (elapsed < minDuration) {
+        await Future.delayed(minDuration - elapsed);
+      }
+    }
+
+    if (!mounted) return;
+
+    setState(() {
+      folders = result.map((e) => Folder.fromMap(e)).toList();
+      // Only clear loading state if this was a blocking load
+      // This prevents background silent refreshes (e.g. sync) from interrupting the welcome animation
+      if (!silent) {
+        _isLoading = false;
+      }
+    });
+  }
+  
+
+
+  Future<void> _deleteFolder(Folder folder) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Folder?'),
+        content: const Text(
+          'This will delete the folder and all links inside it. This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete', style: TextStyle(color: AppTheme.errorColor)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        await DatabaseHelper.instance.deleteFolder(folder.id!);
+        
+        _loadFolders(silent: true);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Folder deleted')),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to delete folder')),
+          );
+        }
+      }
+    }
+  }
+
+  /// Bottom sheet to pick folder for shared link (with suggestions)
+  void _showFolderPicker(String link) async {
+    print('[FOLDER_PICKER] Starting with link: $link');
+    // Extract metadata for suggestions
+    try {
+      print('[FOLDER_PICKER] Extracting metadata and content...');
+      final metadata = await MetadataExtractor.extractMetadata(link);
+      final title = metadata['title'] ?? '';
+      final description = metadata['description'] ?? '';
+      final content = metadata['content'] ?? '';
+      
+      print('[FOLDER_PICKER] Metadata extracted - title: $title');
+
+      if (!mounted) {
+        print('[FOLDER_PICKER] Widget not mounted after metadata extraction');
+        return;
+      }
+
+      print('[FOLDER_PICKER] Showing suggestion dialog with ${folders.length} folders');
+      // Show folder suggestion dialog
+      final selectedFolder = await showDialog<Folder>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => FolderSuggestionDialog(
+          linkUrl: link,
+          linkTitle: title,
+          linkDescription: description,
+          linkContent: content,
+          folders: folders,
+        ),
+      );
+
+      print('[FOLDER_PICKER] Dialog returned: $selectedFolder');
+
+      if (selectedFolder == null || !mounted) {
+        print('[FOLDER_PICKER] No folder selected or widget unmounted');
+        return;
+      }
+
+      // Save link to selected folder
+      await _saveLinkToFolder(link, selectedFolder, title, description);
+    } catch (e, st) {
+      print('[FOLDER_PICKER] Error: $e');
+      print('[FOLDER_PICKER] Stack trace: $st');
+      // Fallback to simple folder picker if metadata extraction fails
+      if (!mounted) return;
+      _showSimpleFolderPicker(link);
+    }
+  }
+
+  /// Simple folder picker (fallback)
+  void _showSimpleFolderPicker(String link) {
+    showModalBottomSheet(
+      context: context,
+      isDismissible: false,
+      enableDrag: false,
+      builder: (_) {
+        return SafeArea(
+          child: SizedBox(
+            height: 400,
+            child: Column(
+              children: [
+                const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Text(
+                    'Save to folder',
+                    style: AppTheme.heading3,
+                  ),
+                ),
+                Expanded(
+                  child: folders.isEmpty
+                      ? const Center(
+                          child: Text('No folders available'),
+                        )
+                      : ListView.builder(
+                          itemCount: folders.length,
+                          itemBuilder: (context, index) {
+                            final folder = folders[index];
+                            return ListTile(
+                              leading: Icon(
+                                _parseIcon(folder.icon),
+                                color: AppTheme.primaryColor,
+                              ),
+                              title: Text(
+                                folder.name,
+                                style: AppTheme.bodyLarge,
+                              ),
+                              onTap: () async {
+                                final navigator = Navigator.of(context);
+                                await _saveLinkToFolder(link, folder, link, '');
+                                if (!mounted) return;
+                                navigator.pop();
+                                SystemNavigator.pop();
+                              },
+                            );
+                          },
+                        ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// Save link to folder with metadata
+  Future<void> _saveLinkToFolder(
+    String url,
+    Folder folder,
+    String title,
+    String description,
+  ) async {
+    try {
+      final db = await DatabaseHelper.instance.database;
+      
+      // Use title if available, otherwise use domain
+      String displayTitle = title;
+      if (displayTitle.isEmpty) {
+        try {
+          final uri = Uri.parse(url);
+          displayTitle = uri.host.replaceAll('www.', '');
+        } catch (e) {
+          displayTitle = 'Link';
+        }
+      }
+
+      await db.insert('links', {
+        'folder_id': folder.id,
+        'url': url,
+        'title': displayTitle,
+        'domain': _extractDomain(url),
+        'created_at': DateTime.now().toIso8601String(),
+      });
+
+      if (!mounted) return;
+
+      // Show success popup
+      await LinkSavedPopup.show(context);
+
+      // Synch immediately to update active status
+      SyncManager.instance.sync();
+
+      // Close the app
+      final navigator = Navigator.of(context);
+      navigator.pop(); // closes dialog/sheet
+      SystemNavigator.pop(); // finishes share activity
+    } catch (e) {
+      print('Error saving link: $e');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to save link')),
+      );
+    }
+  }
+
+  String _extractDomain(String url) {
+    try {
+      final uri = Uri.parse(url);
+      return uri.host.replaceAll('www.', '');
+    } catch (e) {
+      return '';
+    }
+  }
+
+  IconData _parseIcon(String iconCode) {
+    // Map of icon codes to MaterialDesignIcons
+    final iconMap = {
+      // Folder Icons
+      '0xe3b0': Icons.folder,
+      '0xf06b': Icons.folder_open,
+      '0xf07b': Icons.folder_special,
+      // Document Icons
+      '0xf1c6': Icons.description,
+      '0xf0f6': Icons.file_present,
+      '0xe80c': Icons.article,
+      '0xe8d0': Icons.note,
+      '0xe3c9': Icons.notes,
+      // Media Icons
+      '0xe8a5': Icons.image,
+      '0xe04b': Icons.video_library,
+      '0xf001': Icons.music_note,
+      '0xe3fc': Icons.photo,
+      '0xe04e': Icons.videocam,
+      '0xe3b1': Icons.collections,
+      // Organization Icons
+      '0xe875': Icons.bookmark,
+      '0xe839': Icons.favorite,
+      '0xf591': Icons.star,
+      '0xe5ca': Icons.label,
+      '0xe3b8': Icons.category,
+      '0xe863': Icons.archive,
+      // Business/Work Icons
+      '0xe8e0': Icons.work,
+      '0xe8d5': Icons.business,
+      '0xe8d3': Icons.engineering,
+      '0xf1bc': Icons.assignment,
+      '0xe8dd': Icons.task,
+      '0xe8dc': Icons.checklist,
+      '0xe192': Icons.attach_money,
+      '0xf170': Icons.trending_up,
+      // Personal Icons
+      '0xe871': Icons.home,
+      '0xf0e6': Icons.school,
+      '0xf086': Icons.lightbulb,
+      '0xe919': Icons.psychology,
+      '0xf195': Icons.travel_explore,
+      '0xf04a': Icons.sports_basketball,
+      // Tech Icons
+      '0xf123': Icons.code,
+      '0xf0d6': Icons.settings,
+      '0xe30b': Icons.computer,
+      '0xe325': Icons.phone_android,
+      '0xe3ce': Icons.terminal,
+      '0xe30c': Icons.storage,
+      // Shopping & Lifestyle
+      '0xe5dd': Icons.shopping_bag,
+      '0xe53a': Icons.shopping_cart,
+      '0xe32e': Icons.restaurant,
+      '0xe6d3': Icons.local_cafe,
+      '0xe8a0': Icons.health_and_safety,
+      '0xe8c9': Icons.fitness_center,
+      // Social & Communication
+      '0xe0b9': Icons.people,
+      '0xe0ba': Icons.person,
+      '0xe0c0': Icons.mail,
+      '0xe0c1': Icons.chat,
+      '0xe0c2': Icons.comment,
+      '0xe0c8': Icons.notifications,
+      // Time & Calendar
+      '0xe935': Icons.calendar_today,
+      '0xe937': Icons.schedule,
+      '0xe8c5': Icons.event,
+      // Misc
+      '0xe25c': Icons.lock,
+      '0xe899': Icons.key,
+      '0xe8d7': Icons.palette,
+      '0xf05a': Icons.pets,
+      '0xe55b': Icons.info,
+      '0xe5d5': Icons.help,
+    };
+    return iconMap[iconCode] ?? Icons.folder;
+  }
+
+  final GlobalKey _menuButtonKey = GlobalKey();
+
+  void _showMainMenu() async {
+    final renderBox = _menuButtonKey.currentContext?.findRenderObject() as RenderBox?;
+    if (renderBox == null) return;
+
+    final offset = renderBox.localToGlobal(Offset.zero);
+    final size = renderBox.size;
+    // Calculate position: right aligned, below the button
+    // We pass the top-right coordinate of the menu's desired position
+    final top = offset.dy + size.height;
+    final right = MediaQuery.of(context).size.width - (offset.dx + size.width);
+
+    // Using a custom transparent route
+    await Navigator.of(context).push(
+      PageRouteBuilder(
+        opaque: false,
+        barrierDismissible: true,
+        barrierColor: Colors.transparent, // We handle barrier manually for cleaner dismiss
+        pageBuilder: (context, animation, secondaryAnimation) {
+          return _FolderMenuOverlay(
+            top: top,
+            right: right,
+            isAdmin: _isAdmin,
+            onLogout: _handleLogout,
+          );
+        },
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return FadeTransition(opacity: animation, child: child);
+        },
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+
+    if (_isLoading) {
+      return GradientScaffold(
+         body: Center(
+           child: Column(
+             mainAxisAlignment: MainAxisAlignment.center,
+             children: [
+               // Animated Logo
+               TweenAnimationBuilder<double>(
+                 tween: Tween(begin: 0.0, end: 1.0),
+                 duration: const Duration(milliseconds: 800),
+                 curve: Curves.easeOutBack,
+                 builder: (context, value, child) {
+                   return Transform.scale(
+                     scale: value,
+                     child: Icon(
+                       Icons.folder_copy_rounded, 
+                       size: 80, 
+                       color: colorScheme.primary,
+                     ),
+                   );
+                 },
+               ),
+               const SizedBox(height: 40),
+               // Typewriter Text
+               DefaultTextStyle(
+                 style: theme.textTheme.headlineSmall!.copyWith(
+                   fontWeight: FontWeight.bold,
+                   color: colorScheme.onSurface,
+                   letterSpacing: 1.0,
+                 ),
+                 child: TweenAnimationBuilder<int>(
+                   tween: IntTween(begin: 0, end: "Welcome to I Like It".length),
+                   duration: const Duration(milliseconds: 2000),
+                   curve: Curves.linear,
+                   builder: (context, value, child) {
+                     final text = "Welcome to I Like It";
+                     return Row(
+                       mainAxisSize: MainAxisSize.min,
+                       children: [
+                         Text(text.substring(0, value)),
+                         // Blinking cursor effect
+                         if (value < text.length)
+                           TweenAnimationBuilder<double>(
+                             tween: Tween(begin: 0.0, end: 1.0),
+                             duration: const Duration(milliseconds: 500),
+                             builder: (context, value, child) {
+                               return Opacity(
+                                 opacity: value > 0.5 ? 1.0 : 0.0,
+                                 child: Container(
+                                   width: 2,
+                                   height: 24,
+                                   color: colorScheme.primary,
+                                 ),
+                               );
+                             },
+                             onEnd: () {},
+                           )
+                       ],
+                     );
+                   },
+                 ),
+               ),
+             ],
+           ),
+         ),
+      );
+    }
+
+    return GradientScaffold(
+      floatingActionButton: folders.isEmpty
+          ? null
+          : FloatingActionButton(
+              onPressed: () async {
+                await _showAddFolderDialog();
+              },
+              backgroundColor: colorScheme.primary,
+              elevation: 4,
+              child: const Icon(Icons.add_rounded, size: 28),
+            ),
+      body: RefreshIndicator(
+        onRefresh: () async {
+          await _loadFolders(silent: true);
+          await _checkAdmin();
+        },
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            SliverAppBar(
+              floating: true,
+              pinned: true,
+              expandedHeight: 120.0,
+              backgroundColor: Colors.transparent, // Transparent for gradient
+              surfaceTintColor: Colors.transparent,
+              flexibleSpace: ClipRRect(
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                  child: FlexibleSpaceBar(
+                    background: Container(color: theme.scaffoldBackgroundColor.withOpacity(0.3)), // Subtle tint
+                    titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
+                    title: Text(
+                      'My Collections',
+                      style: TextStyle(
+                        color: colorScheme.onSurface,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 24, 
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                    centerTitle: false,
+                  ),
+                ),
+              ),
+              actions: [
+                IconButton(
+                  icon: Icon(Icons.search, color: colorScheme.onSurfaceVariant),
+                  onPressed: () => showSearch(
+                    context: context,
+                    delegate: GlobalSearchDelegate(),
+                  ),
+                ),
+                IconButton(
+                  key: _menuButtonKey,
+                  icon: Icon(Icons.more_vert, color: colorScheme.onSurfaceVariant),
+                  onPressed: _showMainMenu,
+                  tooltip: 'Options',
+                ),
+                const SizedBox(width: 8),
+              ],
+            ),
+            if (folders.isEmpty)
+             SliverFillRemaining(
+                hasScrollBody: false,
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                       GlassContainer(
+                        borderRadius: BorderRadius.circular(100),
+                        padding: const EdgeInsets.all(32),
+                        child: Icon(
+                          Icons.folder_open_rounded,
+                          size: 64,
+                          color: colorScheme.primary.withOpacity(0.5),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      Text(
+                        'No collections yet',
+                        style: theme.textTheme.headlineSmall,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Organize your favorites into folders',
+                        style: theme.textTheme.bodyMedium,
+                      ),
+                      const SizedBox(height: 32),
+                      ElevatedButton.icon(
+                        onPressed: () async {
+                          await _showAddFolderDialog();
+                        },
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 32, vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                        ),
+                        icon: const Icon(Icons.add, size: 20),
+                        label: const Text('New Folder'),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            else
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final folder = folders[index];
+                      // Use GlassContainer for items
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: GlassContainer(
+                          padding: EdgeInsets.zero,
+                          enableBlur: false, // Optimize performance
+                          borderRadius: BorderRadius.circular(16),
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(16),
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => LinkScreen(
+                                      folderId: folder.id!,
+                                      folderName: folder.name,
+                                    ),
+                                  ),
+                                );
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.all(4),
+                                child: ListTile(
+                                  contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 6),
+                                  leading: Container(
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: colorScheme.primary.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Icon(
+                                      _parseIcon(folder.icon),
+                                      color: colorScheme.primary,
+                                      size: 24,
+                                    ),
+                                  ),
+                                  title: Text(
+                                    folder.name,
+                                    style: theme.textTheme.bodyLarge?.copyWith(
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  trailing: PopupMenuButton(
+                                    icon: Icon(Icons.more_horiz,
+                                        color: colorScheme.onSurfaceVariant),
+                                    padding: EdgeInsets.zero,
+                                    itemBuilder: (context) => [
+                                      PopupMenuItem(
+                                        value: 'edit',
+                                        child: Row(
+                                          children: [
+                                            Icon(Icons.edit_outlined,
+                                                size: 20, color: colorScheme.onSurfaceVariant),
+                                            const SizedBox(width: 12),
+                                            Text('Rename',
+                                                style: theme.textTheme.bodyMedium),
+                                          ],
+                                        ),
+                                      ),
+                                      PopupMenuItem(
+                                        value: 'delete',
+                                        child: Row(
+                                          children: [
+                                            Icon(Icons.delete_outline,
+                                                size: 20, color: colorScheme.error),
+                                            const SizedBox(width: 12),
+                                            Text('Delete',
+                                                style: theme.textTheme.bodyMedium?.copyWith(
+                                                  color: colorScheme.error,
+                                                )),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                    onSelected: (value) async {
+                                      if (value == 'edit') {
+                                        final edited = await showDialog<bool>(
+                                          context: context,
+                                          builder: (_) =>
+                                              EditFolderDialog(folder: folder),
+                                        );
+                                        if (edited == true) {
+                                          _loadFolders(silent: true);
+                                          SyncManager.instance.sync();
+                                        }
+                                      } else if (value == 'delete') {
+                                        await _deleteFolder(folder);
+                                        SyncManager.instance.sync();
+                                      }
+                                    },
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                    childCount: folders.length,
+                  ),
+                ),
+              ),
+            // Extra padding for FAB
+            const SliverToBoxAdapter(child: SizedBox(height: 80)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showAddFolderDialog() async {
+    final result = await showDialog<dynamic>(
+      context: context,
+      builder: (context) => const AddFolderDialog(),
+    );
+    
+    if (result != null) {
+      _loadFolders();
+      SyncManager.instance.sync();
+    }
+  }
+}
+
+class _FolderMenuOverlay extends StatefulWidget {
+  final double top;
+  final double right;
+  final bool isAdmin;
+  final VoidCallback onLogout;
+
+  const _FolderMenuOverlay({
+    required this.top,
+    required this.right,
+    required this.isAdmin,
+    required this.onLogout,
+  });
+
+  @override
+  State<_FolderMenuOverlay> createState() => _FolderMenuOverlayState();
+}
+
+enum _MenuPage { main, appearance }
+
+class _FolderMenuOverlayState extends State<_FolderMenuOverlay> {
+  _MenuPage _page = _MenuPage.main;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        // Barrier
+        Positioned.fill(
+          child: GestureDetector(
+            onTap: () => Navigator.pop(context),
+            behavior: HitTestBehavior.translucent,
+            child: Container(color: Colors.transparent),
+          ),
+        ),
+        // Menu
+        Positioned(
+          top: widget.top,
+          right: widget.right,
+          child: Material(
+            color: Colors.transparent,
+            elevation: 8, // Increased elevation
+            borderRadius: BorderRadius.circular(16),
+            child: GlassContainer( // Wrap menu in GlassContainer
+              width: 260,
+              padding: EdgeInsets.zero,
+              borderRadius: BorderRadius.circular(16),
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
+                transitionBuilder: (child, animation) {
+                  return SlideTransition(
+                    position: Tween<Offset>(
+                      begin: const Offset(0.1, 0),
+                      end: Offset.zero,
+                    ).animate(animation),
+                    child: FadeTransition(opacity: animation, child: child),
+                  );
+                },
+                child: _page == _MenuPage.main
+                    ? _buildMainMenu(context)
+                    : _buildAppearanceMenu(context),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMainMenu(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Column(
+      key: const ValueKey('main'),
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        ListTile(
+          leading: Icon(Icons.palette_outlined, color: colorScheme.onSurface, size: 20),
+          title: Text('Appearance', style: theme.textTheme.bodyMedium),
+          trailing: Icon(Icons.chevron_right, color: colorScheme.onSurfaceVariant, size: 18),
+          onTap: () => setState(() => _page = _MenuPage.appearance),
+          dense: true,
+        ),
+        ListTile(
+          leading: Icon(Icons.settings_backup_restore, color: colorScheme.onSurface, size: 20),
+          title: Text('Data Recovery', style: theme.textTheme.bodyMedium),
+          onTap: () {
+            Navigator.pop(context); // Close menu
+            Navigator.push(context, MaterialPageRoute(builder: (_) => RecoverySettingsScreen()));
+          },
+          dense: true,
+        ),
+        if (widget.isAdmin)
+          ListTile(
+            leading: Icon(Icons.admin_panel_settings, color: colorScheme.primary, size: 20),
+            title: Text(
+              'Admin Dashboard',
+              style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.primary),
+            ),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.push(context, MaterialPageRoute(builder: (_) => AdminScreen()));
+            },
+            dense: true,
+          ),
+        ListTile(
+          leading: Icon(Icons.logout, color: colorScheme.error, size: 20),
+          title: Text(
+            'Logout',
+            style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.error),
+          ),
+          onTap: () {
+            Navigator.pop(context);
+            widget.onLogout();
+          },
+          dense: true,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAppearanceMenu(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final currentMode = ThemeManager.instance.themeModeNotifier.value;
+
+    return Column(
+      key: const ValueKey('appearance'),
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        InkWell(
+          onTap: () => setState(() => _page = _MenuPage.main),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              children: [
+                Icon(Icons.arrow_back, color: colorScheme.onSurface, size: 18),
+                const SizedBox(width: 12),
+                Text(
+                  'Appearance', 
+                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)
+                ),
+              ],
+            ),
+          ),
+        ),
+        const Divider(height: 1),
+        _buildThemeOption(context, 'System Default', ThemeMode.system, currentMode),
+        _buildThemeOption(context, 'Light Mode', ThemeMode.light, currentMode),
+        _buildThemeOption(context, 'Dark Mode', ThemeMode.dark, currentMode),
+      ],
+    );
+  }
+
+  Widget _buildThemeOption(
+    BuildContext context, 
+    String title, 
+    ThemeMode mode, 
+    ThemeMode current
+  ) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isSelected = mode == current;
+
+    return ListTile(
+      leading: Icon(
+        mode == ThemeMode.light ? Icons.light_mode : 
+        mode == ThemeMode.dark ? Icons.dark_mode : Icons.brightness_auto,
+        color: isSelected ? colorScheme.primary : colorScheme.onSurfaceVariant,
+        size: 20
+      ),
+      title: Text(
+        title,
+        style: theme.textTheme.bodyMedium?.copyWith(
+          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          color: isSelected ? colorScheme.primary : colorScheme.onSurface,
+        ),
+      ),
+      trailing: isSelected ? Icon(Icons.check, color: colorScheme.primary, size: 18) : null,
+      onTap: () {
+        ThemeManager.instance.setThemeMode(mode);
+        // Do not close menu, allow user to see change
+        // Or close? User request "transition between themes is choppy" could mean 
+        // they want to see it instantly without menu glitching. 
+        // Keeping menu open allows them to switch back if they don't like it.
+        // We set state to trigger rebuild of icons
+        setState(() {}); 
+      },
+      dense: true,
+    );
+  }
+}
