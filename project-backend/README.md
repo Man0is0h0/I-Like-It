@@ -1,50 +1,45 @@
-# I Like It - Backend Project Setup
+# Project Backend: Setup Guide
 
-This folder contains the complete Supabase backend configuration, including the database schema, security policies, and edge functions.
+This folder contains a complete "literal clone" of the project's backend. Follow these steps to set up a new Supabase project with exactly the same tables, functions, and settings.
 
-## 🛠️ Step-by-Step Installation
+## 🚀 Setup Instructions
 
-### 1. Supabase Project Setup
-1. Create a new project at [database.supabase.com](https://database.supabase.com).
-2. Go to the **SQL Editor** in your Supabase dashboard.
-3. Open `schema.sql` from this folder, copy its content, and **Run** it. This will create all tables, triggers, and security policies.
+### 1. Database Schema
+1. Go to your **Supabase Dashboard**.
+2. Open the **SQL Editor**.
+3. Create a new query and paste the contents of [`schema.sql`](./schema.sql).
+4. Run the query. This will:
+    - Enable extensions (`pg_net`, `pg_cron`, etc.).
+    - Create all tables (`users`, `folders`, `links`, etc.).
+    - Set up RLS policies.
+    - Create RPC functions and database triggers.
 
-### 2. Edge Function Deployment
-You will need the [Supabase CLI](https://supabase.com/docs/guides/cli/getting-started) and [Docker](https://www.docker.com/) installed.
-
-1. **Login to Supabase CLI:**
+### 2. Edge Functions
+Deploy the functions using the Supabase CLI:
+1. Initialize Supabase in this directory if you haven't: `supabase init`.
+2. Deploy the functions:
    ```bash
-   npx supabase login
-   ```
-2. **Link this folder to your project:**
-   ```bash
-   npx supabase link --project-ref <your-project-id>
-   ```
-3. **Set your Gemini API Key:**
-   ```bash
-   npx supabase secrets set GEMINI_API_KEY="your-gemini-api-key"
-   ```
-4. **Deploy the Function:**
-   ```bash
-   npx supabase functions deploy classify-folders
+   supabase functions deploy classify-folders
+   supabase functions deploy send-otp
    ```
 
-### 3. Authentication & Resend SMTP Setup
-1. In the Supabase Dashboard, go to **Authentication > Providers > Email**.
-2. Set **Confirm Email** to **ON**.
-3. **Configure Resend SMTP:**
-   - Go to **Authentication > SMTP Settings**.
-   - Enable SMTP.
-   - **Host:** `smtp.resend.com`
-   - **Port:** `465` or `587`
-   - **User:** `resend`
-   - **Password:** Your Resend API Key.
-   - **Sender Email:** The email verified in your Resend dashboard.
-4. Under **Authentication > Email Templates**, ensure your templates use `{{ .Token }}` for OTP verification codes.
+### 3. Required Secrets
+You **MUST** set the following secrets in your Supabase project for the functions to work:
 
-## 📁 Folder Structure
-- `schema.sql`: Full database structure and RLS policies.
-- `.env.example`: Template for required secrets.
-- `supabase/`:
-  - `config.toml`: Local CLI configuration.
-  - `functions/`: Source code for Edge Functions.
+```bash
+supabase secrets set GEMINI_API_KEY=your_gemini_key
+supabase secrets set RESEND_API_KEY=your_resend_api_key
+```
+
+### 4. Scheduled Jobs (Cron)
+The database setup automatically schedules a job to run `classify-folders` every 30 minutes. 
+**Note**: You must manually update the `Authorization` header in the `cron.schedule` call in [schema.sql](./schema.sql) (line ~168) with your actual `SERVICE_ROLE_KEY` if not using local development.
+
+## 📁 Project Structure
+- `supabase/functions/`: Source code for all Edge Functions.
+- `supabase/config.toml`: Local development settings.
+- `schema.sql`: Master database dump.
+- `.env.example`: Template for required environment variables.
+
+## 🛡️ Security
+Ensure you review the RLS policies in `schema.sql` to match your specific access requirements. By default, it follows a strict "User owns their data" policy with an "Admin" role override.
