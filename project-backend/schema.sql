@@ -10,60 +10,71 @@ CREATE EXTENSION IF NOT EXISTS "pg_cron";
 
 -- 2. Create Tables
 
--- Users Table (Extends Supabase Auth)
+-- Users Table
 CREATE TABLE IF NOT EXISTS public.users (
-  id uuid REFERENCES auth.users NOT NULL PRIMARY KEY,
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  recovery_hash text NOT NULL,
   email text,
-  username text,
-  role text DEFAULT 'user',
+  email_verified boolean DEFAULT false,
+  role text NOT NULL DEFAULT 'user'::text,
   encrypted_recovery_code text,
-  recovery_hash text,
-  last_seen_at timestamptz DEFAULT now(),
-  created_at timestamptz DEFAULT now()
+  last_seen_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
+  created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  CONSTRAINT users_pkey PRIMARY KEY (id)
 );
 
 -- Folders Table
 CREATE TABLE IF NOT EXISTS public.folders (
-  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id uuid REFERENCES public.users(id) ON DELETE CASCADE NOT NULL,
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  user_id uuid NOT NULL,
   name text NOT NULL,
-  icon text DEFAULT 'folder',
+  icon text DEFAULT '0xe3b0'::text,
   is_smart boolean DEFAULT false,
   order_index integer DEFAULT 0,
   system_category text DEFAULT 'other',
   is_deleted boolean DEFAULT false,
-  updated_at timestamptz DEFAULT now(),
-  created_at timestamptz DEFAULT now()
+  updated_at timestamp with time zone NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  CONSTRAINT folders_pkey PRIMARY KEY (id),
+  CONSTRAINT folders_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
 
 -- Links Table
 CREATE TABLE IF NOT EXISTS public.links (
-  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-  folder_id uuid REFERENCES public.folders(id) ON DELETE CASCADE NOT NULL,
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  user_id uuid NOT NULL,
+  folder_id uuid NOT NULL,
   url text NOT NULL,
-  title text,
-  description text,
+  title text NOT NULL,
+  domain text,
   image_url text,
+  notes text,
   is_favorite boolean DEFAULT false,
-  user_id uuid REFERENCES public.users(id),
-  updated_at timestamptz DEFAULT now(),
-  created_at timestamptz DEFAULT now()
+  is_deleted boolean DEFAULT false,
+  updated_at timestamp with time zone NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  CONSTRAINT links_pkey PRIMARY KEY (id),
+  CONSTRAINT links_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT links_folder_id_fkey FOREIGN KEY (folder_id) REFERENCES public.links(id) ON DELETE CASCADE
 );
 
 -- Debug Logs
 CREATE TABLE IF NOT EXISTS public.debug_logs (
-  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   message text,
   metadata jsonb,
-  created_at timestamptz DEFAULT now()
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT debug_logs_pkey PRIMARY KEY (id)
 );
 
 -- Email OTPs
 CREATE TABLE IF NOT EXISTS public.email_otps (
-  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-  email text,
-  otp_code text,
-  created_at timestamptz DEFAULT now()
+  email text NOT NULL,
+  otp_code text NOT NULL,
+  attempts integer DEFAULT 0,
+  expires_at timestamp with time zone NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT email_otps_pkey PRIMARY KEY (email)
 );
 
 -- 3. Enable Row Level Security (RLS)
