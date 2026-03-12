@@ -33,7 +33,7 @@ supabase secrets set RESEND_API_KEY=your_resend_api_key
 
 ### 4. Scheduled Jobs (Cron)
 The database setup automatically schedules a job to run `classify-folders` every 30 minutes. 
-**Note**: You must manually update the `Authorization` header in the `cron.schedule` call in [schema.sql](./schema.sql) (line ~168) with your actual `SERVICE_ROLE_KEY` if not using local development.
+**Note**: You must manually update the `Authorization` header in the `cron.schedule` call in [schema.sql](./schema.sql) (line 172) with your actual `SERVICE_ROLE_KEY`.
 
 ## 📁 Project Structure
 - `supabase/functions/`: Source code for all Edge Functions.
