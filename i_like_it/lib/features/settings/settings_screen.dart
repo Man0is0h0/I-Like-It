@@ -65,9 +65,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 12),
           
           _buildSettingsTile(
-            icon: Icons.settings_backup_restore,
-            title: 'Data Recovery',
-            subtitle: 'Backup & Restore options',
+            icon: Icons.person,
+            title: 'Account Settings',
+            subtitle: 'Manage your email',
             onTap: () {
               Navigator.push(
                 context,
@@ -258,7 +258,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       builder: (context) => AlertDialog(
         title: const Text('Logout?'),
         content: const Text(
-          'Are you sure you want to log out? You will need your Recovery Code to sign back in.',
+          'Are you sure you want to log out? You will need to verify your email to sign back in.',
         ),
         actions: [
           TextButton(

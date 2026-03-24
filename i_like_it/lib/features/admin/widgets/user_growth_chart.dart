@@ -218,9 +218,10 @@ class _UserGrowthChartState extends State<UserGrowthChart> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                    Row(
                      children: [
                        Text('User Growth',
@@ -235,6 +236,8 @@ class _UserGrowthChartState extends State<UserGrowthChart> {
                      style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant)),
                 ],
               ),
+              ),
+              const SizedBox(width: 8),
               
               // Filter Menu
               PopupMenuButton<TimeRange>(

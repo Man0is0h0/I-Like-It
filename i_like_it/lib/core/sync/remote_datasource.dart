@@ -8,11 +8,18 @@ class RemoteDataSource {
 
   // --- Users ---
 
-  Future<void> createUser(String userId, String recoveryHash, {String? encryptedCode}) async {
+  Future<void> createUser(String userId, String recoveryHash) async {
     await _client.from('users').upsert({
       'id': userId,
       'recovery_hash': recoveryHash,
-      if (encryptedCode != null) 'encrypted_recovery_code': encryptedCode,
+      'last_seen_at': DateTime.now().toIso8601String(),
+    });
+  }
+
+  Future<void> createUserWithEmail(String userId, String email) async {
+    await _client.from('users').upsert({
+      'id': userId,
+      'email': email,
       'last_seen_at': DateTime.now().toIso8601String(),
     });
   }
@@ -111,28 +118,16 @@ class RemoteDataSource {
     return null;
   }
   
-  Future<String?> fetchEncryptedRecoveryCode(String userId) async {
-     final response = await _client
-        .from('users')
-        .select('encrypted_recovery_code')
-        .eq('id', userId)
-        .maybeSingle();
-        
-    if (response != null) {
-      return response['encrypted_recovery_code'] as String?;
-    }
-    return null;
-  }
+
   
   Future<String?> findUserIdByEmail(String email) async {
-    final response = await _client
-        .from('users')
-        .select('id')
-        .eq('email', email)
-        .maybeSingle();
-
-    if (response != null) {
-      return response['id'] as String;
+    try {
+      final response = await _client.rpc('get_user_id_by_email', params: {'p_email': email});
+      if (response != null) {
+        return response as String;
+      }
+    } catch (e) {
+      print('RPC get_user_id_by_email failed: $e');
     }
     return null;
   }

@@ -66,6 +66,7 @@ class _AddLinkDialogState extends State<AddLinkDialog> {
       // Extract metadata from the URL
       final metadata = await MetadataExtractor.extractMetadata(url);
       String title = metadata['title'] ?? '';
+      String imageUrl = metadata['image'] ?? '';
       
       // If no title found, use domain as title
       if (title.isEmpty) {
@@ -117,6 +118,7 @@ class _AddLinkDialogState extends State<AddLinkDialog> {
         url: url,
         title: title,
         domain: _extractDomain(url),
+        imageUrl: imageUrl.isNotEmpty ? imageUrl : null,
         notes: notes,
         createdAt: DateTime.now(),
       );
@@ -271,11 +273,12 @@ class _NotesDialogState extends State<_NotesDialog> {
   Widget build(BuildContext context) {
     return AlertDialog(
       title: const Text('Add Notes (Optional)'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
             'Link: ${widget.title}',
             style: const TextStyle(
               fontSize: 13,
@@ -314,6 +317,7 @@ class _NotesDialogState extends State<_NotesDialog> {
             },
           ),
         ],
+      ),
       ),
       actions: [
         TextButton(

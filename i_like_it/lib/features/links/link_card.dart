@@ -7,11 +7,13 @@ import '../../core/widgets/glass_container.dart'; // New
 class LinkCard extends StatelessWidget {
   final LinkItem link;
   final VoidCallback onTap;
+  final Widget? trailing;
 
   const LinkCard({
     super.key,
     required this.link,
     required this.onTap,
+    this.trailing,
   });
 
   @override
@@ -45,16 +47,14 @@ class LinkCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: _getDomainColor(domain).withOpacity(0.3)),
                   ),
-                  child: Center(
-                    child: Text(
-                      domain.isNotEmpty ? domain[0].toUpperCase() : '?',
-                      style: TextStyle(
-                        color: _getDomainColor(domain),
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: link.imageUrl != null && link.imageUrl!.isNotEmpty
+                      ? Image.network(
+                          link.imageUrl!,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => _buildFallbackInitial(domain),
+                        )
+                      : _buildFallbackInitial(domain),
                 ),
                 const SizedBox(width: 16),
                 
@@ -122,9 +122,23 @@ class LinkCard extends StatelessWidget {
                     ],
                   ),
                 ),
+                if (trailing != null) trailing!,
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFallbackInitial(String domain) {
+    return Center(
+      child: Text(
+        domain.isNotEmpty ? domain[0].toUpperCase() : '?',
+        style: TextStyle(
+          color: _getDomainColor(domain),
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
         ),
       ),
     );

@@ -90,10 +90,11 @@ class _EditFolderDialogState extends State<EditFolderDialog> {
   Widget build(BuildContext context) {
     return AlertDialog(
       title: const Text('Edit Folder'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          GestureDetector(
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            GestureDetector(
             onTap: _isSaving ? null : _showIconPicker,
             child: Container(
               decoration: BoxDecoration(
@@ -160,6 +161,7 @@ class _EditFolderDialogState extends State<EditFolderDialog> {
             ),
           ),
         ],
+      ),
       ),
       actions: [
         TextButton(

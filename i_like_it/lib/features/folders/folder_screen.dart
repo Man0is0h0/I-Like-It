@@ -17,7 +17,6 @@ import '../../core/sync/sync_manager.dart';
 import 'dart:async';
 import '../../core/auth/user_session_manager.dart';
 import '../../core/theme/theme_manager.dart';
-import '../settings/recovery_settings.dart';
 import '../admin/admin_screen.dart';
 import '../onboarding/initial_setup_screen.dart';
 
@@ -729,6 +728,8 @@ class _FolderScreenState extends State<FolderScreen> with WidgetsBindingObserver
                                   ),
                                   title: Text(
                                     folder.name,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                     style: theme.textTheme.bodyLarge?.copyWith(
                                       fontWeight: FontWeight.w600,
                                     ),
@@ -808,8 +809,17 @@ class _FolderScreenState extends State<FolderScreen> with WidgetsBindingObserver
     );
     
     if (result != null) {
-      _loadFolders();
+      _loadFolders(silent: true);
       SyncManager.instance.sync();
+      
+      if (result is Folder && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Folder "${result.name}" created successfully'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
     }
   }
 }
@@ -897,15 +907,7 @@ class _FolderMenuOverlayState extends State<_FolderMenuOverlay> {
           onTap: () => setState(() => _page = _MenuPage.appearance),
           dense: true,
         ),
-        ListTile(
-          leading: Icon(Icons.settings_backup_restore, color: colorScheme.onSurface, size: 20),
-          title: Text('Data Recovery', style: theme.textTheme.bodyMedium),
-          onTap: () {
-            Navigator.pop(context); // Close menu
-            Navigator.push(context, MaterialPageRoute(builder: (_) => RecoverySettingsScreen()));
-          },
-          dense: true,
-        ),
+
         if (widget.isAdmin)
           ListTile(
             leading: Icon(Icons.admin_panel_settings, color: colorScheme.primary, size: 20),

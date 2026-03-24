@@ -3,7 +3,6 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import '../database/database_helper.dart';
 import 'remote_datasource.dart';
 import '../auth/user_session_manager.dart';
-import '../utils/encryption_helper.dart'; // Added encryption helper
 
 class SyncManager {
   static final SyncManager instance = SyncManager._();
@@ -58,42 +57,9 @@ class SyncManager {
     print('[SyncManager] Starting sync for user: $userId...');
 
     try {
-      // 1. Check if we need to create the user in Cloud (if first time)
-      // 1. Check if we need to create the user in Cloud
-      // Lazy creation: Only create if user has actual data or explicitly needed
-      if (!_userCreated) {
-         final hasData = await _local.hasUserGeneratedData();
-         
-         if (hasData) {
-             try {
-               final code = UserSessionManager.recoveryCode;
-               if (code != null) {
-                  final hash = UserSessionManager.hashRecoveryCode(code);
-                  final enc = EncryptionHelper.encrypt(code);
-                  await _remote.createUser(userId, hash, encryptedCode: enc);
-               } else {
-                 print('[SyncManager] Warning: No recovery code found for user.');
-                 await _remote.createUser(userId, 'NO_CODE_LEGACY');
-               }
-               _userCreated = true;
-             } catch (e) {
-              print('[SyncManager] Create user info: $e');
-              if (e.toString().contains('duplicate key') || e.toString().contains('23505')) {
-                 _userCreated = true;
-              }
-           }
-         } else {
-           print('[SyncManager] Skipping user creation: No local data to sync.');
-         }
-      }
-      
-      // Always update last_seen if user is created (or we just discovered they exist)
-      print('[SyncManager] Check userCreated: $_userCreated. Updating last seen...');
-      if (_userCreated) {
-        await _remote.updateLastSeen();
-      }
-
-
+      // 1. Update last_seen
+      print('[SyncManager] Updating last seen...');
+      await _remote.updateLastSeen();
       
       // 2. Push Local Changes
       await _pushFolders();

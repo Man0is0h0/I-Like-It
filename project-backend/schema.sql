@@ -13,11 +13,9 @@ CREATE EXTENSION IF NOT EXISTS "pg_cron";
 -- Users Table
 CREATE TABLE IF NOT EXISTS public.users (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
-  recovery_hash text NOT NULL,
   email text,
   email_verified boolean DEFAULT false,
   role text NOT NULL DEFAULT 'user'::text,
-  encrypted_recovery_code text,
   last_seen_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
   created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
   CONSTRAINT users_pkey PRIMARY KEY (id)
@@ -107,8 +105,8 @@ CREATE POLICY "Service Role manages OTPs" ON public.email_otps FOR ALL USING (au
 CREATE OR REPLACE FUNCTION public.handle_new_user() 
 RETURNS trigger AS $$
 BEGIN
-  INSERT INTO public.users (id, email, username)
-  VALUES (new.id, new.email, new.raw_user_meta_data->>'username');
+  INSERT INTO public.users (id, email)
+  VALUES (new.id, new.email);
   RETURN new;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -143,6 +141,17 @@ BEGIN
     ) INTO v_exists;
     
     RETURN jsonb_build_object('success', v_exists);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Get User ID by Email (Bypass RLS for login flow)
+CREATE OR REPLACE FUNCTION public.get_user_id_by_email(p_email text)
+RETURNS uuid AS $$
+DECLARE
+    v_user_id uuid;
+BEGIN
+    SELECT id INTO v_user_id FROM public.users WHERE email = p_email LIMIT 1;
+    RETURN v_user_id;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 

@@ -58,10 +58,6 @@ class _FolderDistributionChartState extends State<FolderDistributionChart> {
                     style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant)),
                 ],
               ),
-              IconButton(
-                icon: Icon(Icons.more_horiz, color: colorScheme.onSurfaceVariant, size: 20),
-                onPressed: () {},
-              ),
             ],
           ),
           const SizedBox(height: 24),

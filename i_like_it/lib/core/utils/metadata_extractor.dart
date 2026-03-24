@@ -11,6 +11,47 @@ class MetadataExtractor {
         urlWithProtocol = 'https://$url';
       }
 
+      // Special case for YouTube (they often 429 bots)
+      if (urlWithProtocol.contains('youtube.com/watch') || urlWithProtocol.contains('youtu.be/')) {
+        String? videoId;
+        if (urlWithProtocol.contains('youtu.be/')) {
+          videoId = urlWithProtocol.split('youtu.be/').last.split('?').first;
+        } else {
+          try {
+            final uri = Uri.parse(urlWithProtocol);
+            videoId = uri.queryParameters['v'];
+          } catch (_) {}
+        }
+        
+        if (videoId != null && videoId.isNotEmpty) {
+          // Attempt the fetch anyway for the title, but if it fails we have the image
+          try {
+            final response = await http.get(Uri.parse(urlWithProtocol), headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            }).timeout(const Duration(seconds: 5));
+            
+            if (response.statusCode == 200) {
+               final document = parse(response.body);
+               String title = document.querySelector('title')?.text ?? 'YouTube Video';
+               title = _cleanTitle(title);
+               return {
+                 'title': title,
+                 'description': '',
+                 'content': '',
+                 'image': 'https://img.youtube.com/vi/$videoId/hqdefault.jpg',
+               };
+            }
+          } catch (_) {}
+          
+          return {
+             'title': 'YouTube Video',
+             'description': '',
+             'content': '',
+             'image': 'https://img.youtube.com/vi/$videoId/hqdefault.jpg',
+          };
+        }
+      }
+
       final response = await http.get(
         Uri.parse(urlWithProtocol),
         headers: {
@@ -50,10 +91,28 @@ class MetadataExtractor {
       // Extract main content from the page
       String content = _extractPageContent(document);
 
+      String imageUrl = document.querySelector('meta[property="og:image"]')?.attributes['content'] ?? '';
+      if (imageUrl.isEmpty) {
+        imageUrl = document.querySelector('meta[name="twitter:image"]')?.attributes['content'] ?? '';
+      }
+      if (imageUrl.isEmpty) {
+        imageUrl = document.querySelector('link[rel="apple-touch-icon"]')?.attributes['href'] ?? '';
+      }
+      if (imageUrl.isEmpty) {
+        imageUrl = document.querySelector('link[rel="icon"]')?.attributes['href'] ?? '';
+      }
+      if (imageUrl.isNotEmpty && !imageUrl.startsWith('http')) {
+        try {
+          final uri = Uri.parse(urlWithProtocol);
+          imageUrl = uri.resolve(imageUrl).toString();
+        } catch (_) {}
+      }
+
       return {
         'title': title,
         'description': description,
         'content': content,
+        'image': imageUrl,
       };
     } catch (e) {
       // If fetch fails, return empty values
@@ -61,6 +120,7 @@ class MetadataExtractor {
         'title': '',
         'description': '',
         'content': '',
+        'image': '',
       };
     }
   }

@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../core/auth/user_session_manager.dart';
 import '../../core/sync/sync_manager.dart';
-import 'package:flutter/services.dart';
-import '../../core/widgets/gradient_scaffold.dart'; // New
-import '../../core/widgets/glass_container.dart'; // New
+import '../../core/widgets/gradient_scaffold.dart';
+import '../../core/widgets/glass_container.dart';
 
 class RecoverySettingsScreen extends StatefulWidget {
   const RecoverySettingsScreen({super.key});
@@ -13,10 +11,8 @@ class RecoverySettingsScreen extends StatefulWidget {
 }
 
 class _RecoverySettingsScreenState extends State<RecoverySettingsScreen> {
-  bool _showCode = false;
   final _emailController = TextEditingController();
   
-  // State for email management
   bool _isLoadingEmail = true;
   String? _currentEmail;
   bool _isEditing = false;
@@ -33,9 +29,8 @@ class _RecoverySettingsScreenState extends State<RecoverySettingsScreen> {
       if (mounted) {
         setState(() {
           _currentEmail = email;
-          // If we have an email, we show it (not editing). If none, we are ready to edit.
           _isLoadingEmail = false;
-          _isEditing = email == null; // Auto-edit if no email
+          _isEditing = email == null;
           if (email != null) {
             _emailController.text = email;
           }
@@ -51,14 +46,13 @@ class _RecoverySettingsScreenState extends State<RecoverySettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final code = UserSessionManager.recoveryCode ?? 'Unknown';
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
     return GradientScaffold(
       appBar: AppBar(
-        title: Text('Data Recovery', style: theme.textTheme.headlineMedium?.copyWith(fontSize: 20)),
-        backgroundColor: Colors.transparent, // Transparent for gradient
+        title: Text('Account Settings', style: theme.textTheme.headlineMedium?.copyWith(fontSize: 20)),
+        backgroundColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
         iconTheme: IconThemeData(color: colorScheme.onSurface),
@@ -70,70 +64,8 @@ class _RecoverySettingsScreenState extends State<RecoverySettingsScreen> {
              const SizedBox(height: 24),
              _buildSection(
                context,
-               title: 'Recovery Code',
-               description: 'This 16-character code is your primary way to restore data.',
-               child: GlassContainer(
-                 padding: const EdgeInsets.all(16),
-                 borderRadius: BorderRadius.circular(16),
-                 child: Column(
-                   children: [
-                     Row(
-                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                       children: [
-                         Text(
-                           _showCode ? code : '••••-••••-••••-••••',
-                           style: theme.textTheme.titleMedium?.copyWith(
-                             fontFamily: 'Courier',
-                             fontWeight: FontWeight.bold,
-                             fontSize: 18,
-                             letterSpacing: 1.0,
-                           ),
-                         ),
-                         IconButton(
-                           icon: Icon(_showCode ? Icons.visibility_off : Icons.visibility, color: colorScheme.onSurfaceVariant),
-                           onPressed: () => setState(() => _showCode = !_showCode),
-                         ),
-                       ],
-                     ),
-                     if (_showCode)
-                       Padding(
-                         padding: const EdgeInsets.only(top: 12),
-                         child: SizedBox(
-                           width: double.infinity,
-                           child: ElevatedButton.icon(
-                             onPressed: () {
-                               Clipboard.setData(ClipboardData(text: code));
-                               ScaffoldMessenger.of(context).showSnackBar(
-                                 const SnackBar(content: Text('Code copied')),
-                               );
-                             },
-                             style: ElevatedButton.styleFrom(
-                               backgroundColor: colorScheme.surface.withOpacity(0.5),
-                               foregroundColor: colorScheme.primary,
-                               elevation: 0,
-                               padding: const EdgeInsets.symmetric(vertical: 12),
-                               side: BorderSide(color: colorScheme.primary.withOpacity(0.5)),
-                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                             ),
-                             icon: const Icon(Icons.copy, size: 18),
-                             label: const Text('Copy Code'),
-                           ),
-                         ),
-                       ),
-                   ],
-                 ),
-               ),
-             ),
-             
-             Padding(
-               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-               child: Divider(height: 1, color: colorScheme.outline.withOpacity(0.2)),
-             ),
-             
-             _buildSection(
-               context,
-               title: 'Your Mail (Optional)',
-               description: 'Add an email to receive a verification code if you lose your recovery code.',
+               title: 'Your Account Email',
+               description: 'The email address associated with your account.',
                child: _isLoadingEmail 
                   ? const Center(child: CircularProgressIndicator())
                   : _buildEmailContent(theme, colorScheme),
@@ -145,7 +77,6 @@ class _RecoverySettingsScreenState extends State<RecoverySettingsScreen> {
   }
   
   Widget _buildEmailContent(ThemeData theme, ColorScheme colorScheme) {
-    // Case 1: Displaying Saved Email
     if (!_isEditing && _currentEmail != null) {
       return GlassContainer(
         padding: const EdgeInsets.all(16),
@@ -169,7 +100,7 @@ class _RecoverySettingsScreenState extends State<RecoverySettingsScreen> {
                     style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
                   ),
                 ),
-                Icon(Icons.check_circle, color: Colors.green, size: 20),
+                const Icon(Icons.check_circle, color: Colors.green, size: 20),
               ],
             ),
             const SizedBox(height: 16),
@@ -195,7 +126,6 @@ class _RecoverySettingsScreenState extends State<RecoverySettingsScreen> {
       );
     }
     
-    // Case 2: Editing or New Email
     return GlassContainer(
       padding: const EdgeInsets.all(16),
       borderRadius: BorderRadius.circular(16),
@@ -206,7 +136,7 @@ class _RecoverySettingsScreenState extends State<RecoverySettingsScreen> {
             controller: _emailController,
             style: theme.textTheme.bodyMedium,
             decoration: InputDecoration(
-              labelText: 'Recovery Email',
+              labelText: 'Email Address',
               hintText: 'you@example.com',
               filled: true,
               fillColor: theme.cardTheme.color?.withOpacity(0.5),
@@ -275,9 +205,6 @@ class _RecoverySettingsScreenState extends State<RecoverySettingsScreen> {
        );
        return;
     }
-    
-    // Show spinner in button if I wanted, but blocking tap via loading dialog is easier or generic loading
-    // For now simple await
     
     try {
       await SyncManager.instance.remoteDataSource.updateUserEmail(email);

@@ -108,10 +108,11 @@ class _AddFolderDialogState extends State<AddFolderDialog> {
   Widget build(BuildContext context) {
     return AlertDialog(
       title: const Text('New Folder'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          GestureDetector(
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            GestureDetector(
             onTap: _isSaving ? null : _showIconPicker,
             child: Container(
               decoration: BoxDecoration(
@@ -178,6 +179,7 @@ class _AddFolderDialogState extends State<AddFolderDialog> {
             ),
           ),
         ],
+      ),
       ),
       actions: [
         TextButton(

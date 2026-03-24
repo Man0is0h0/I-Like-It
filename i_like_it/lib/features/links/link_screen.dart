@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../core/database/database_helper.dart';
 import '../../core/models/link_model.dart';
 import 'add_link_dialog.dart';
@@ -192,71 +193,75 @@ class _LinkScreenState extends State<LinkScreen> {
                     final link = links[index];
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 10),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: LinkCard(
-                              link: link,
-                              onTap: () {
-                                launchUrl(
-                                  Uri.parse(link.url),
-                                  mode: LaunchMode.externalApplication,
-                                );
-                              },
+                      child: LinkCard(
+                        link: link,
+                        onTap: () {
+                          launchUrl(
+                            Uri.parse(link.url),
+                            mode: LaunchMode.externalApplication,
+                          );
+                        },
+                        trailing: PopupMenuButton(
+                          icon: Icon(Icons.more_vert, 
+                            color: colorScheme.onSurfaceVariant, size: 20),
+                          padding: EdgeInsets.zero,
+                          itemBuilder: (context) => [
+                            PopupMenuItem(
+                              value: 'share',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.share_outlined, size: 18, color: colorScheme.onSurface),
+                                  const SizedBox(width: 8),
+                                  Text('Share', style: theme.textTheme.bodyMedium),
+                                ],
+                              ),
                             ),
-                          ),
-                          // Minimal action menu
-                          PopupMenuButton(
-                            icon: Icon(Icons.more_vert, 
-                              color: colorScheme.onSurfaceVariant, size: 20),
-                            padding: EdgeInsets.zero,
-                            itemBuilder: (context) => [
-                              PopupMenuItem(
-                                value: 'edit',
-                                child: Row(
-                                  children: [
-                                    Icon(Icons.edit_outlined, size: 18, color: colorScheme.onSurface),
-                                    const SizedBox(width: 8),
-                                    Text('Edit', style: theme.textTheme.bodyMedium),
-                                  ],
-                                ),
+                            PopupMenuItem(
+                              value: 'edit',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.edit_outlined, size: 18, color: colorScheme.onSurface),
+                                  const SizedBox(width: 8),
+                                  Text('Edit', style: theme.textTheme.bodyMedium),
+                                ],
                               ),
-                              PopupMenuItem(
-                                value: 'delete',
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      Icons.delete_outline,
-                                      size: 18,
-                                      color: colorScheme.error,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      'Delete',
-                                      style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.error),
-                                    ),
-                                  ],
-                                ),
+                            ),
+                            PopupMenuItem(
+                              value: 'delete',
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.delete_outline,
+                                    size: 18,
+                                    color: colorScheme.error,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Delete',
+                                    style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.error),
+                                  ),
+                                ],
                               ),
-                            ],
-                            onSelected: (value) async {
-                              if (value == 'edit') {
-                                final edited = await showDialog<bool>(
-                                  context: context,
-                                  builder: (_) => EditLinkDialog(link: link),
-                                );
-                                if (edited == true) {
-                                  _loadLinks();
-                                  SyncManager.instance.sync();
-                                }
-                              } else if (value == 'delete') {
-                                await _deleteLink(link);
+                            ),
+                          ],
+                          onSelected: (value) async {
+                            if (value == 'edit') {
+                              final edited = await showDialog<bool>(
+                                context: context,
+                                builder: (_) => EditLinkDialog(link: link),
+                              );
+                              if (edited == true) {
+                                _loadLinks();
                                 SyncManager.instance.sync();
                               }
-                            },
-                          ),
-                        ],
+                            } else if (value == 'delete') {
+                              await _deleteLink(link);
+                              SyncManager.instance.sync();
+                            } else if (value == 'share') {
+                              Share.share(link.url);
+                            }
+                          },
+                        ),
                       ),
                     );
                   },
