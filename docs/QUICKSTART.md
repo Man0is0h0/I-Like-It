@@ -1,69 +1,156 @@
-# ⚡ Quickstart & Setup Guide
+# ⚡ Comprehensive Quickstart & Setup Guide
 
-This guide walks you through setting up the **I Like It** backend services, database migrations, and edge functions.
+Welcome to the detailed setup guide for the **I Like It** application. This document will walk you through the entire process of getting your local environment running, configuring the backend services (Supabase), deploying edge functions, and launching the app on your device or emulator.
 
-## 1️⃣ Supabase Project Setup
-1. Create a new project on [Supabase.com](https://supabase.com).
-2. Go to **Authentication > Providers** and ensure **Email** is enabled. Disable "Confirm email" if you are strictly using custom OTP workflows, though Supabase handles OTP natively.
-3. Retrieve your `Project URL` and `anon public key` from **Settings > API**.
+---
 
-## 2️⃣ Database Setup & Migrations
-You can run the provided SQL scripts directly in the Supabase **SQL Editor** to bootstrap your database.
-1. Copy the contents of `project-backend/schema.sql`.
-2. Paste and run it in the Supabase SQL Editor. This will:
-   - Create `users`, `folders`, and `links` tables.
-   - Set up Row Level Security (RLS) policies.
-   - Create the `handle_new_user` trigger.
-   - Register the `get_user_id_by_email` function for auth flows.
+## 🏗️ 1. Development Environment Setup
 
-## 3️⃣ Edge Function (OTP Emailer) Setup
-The app uses a Supabase Edge Function to deliver OTP emails natively. You can choose either **Gmail SMTP** or **Resend**.
+Before touching the codebase, assure your machine meets the requirements for Flutter development.
 
-### Option A: Gmail SMTP (Free)
-1. Go to your **Google Account Settings** > **Security**. Ensure 2-Step Verification is enabled.
-2. Search for **App passwords** (or go to Security > 2-Step Verification > App passwords).
-3. Create a new app password (e.g., "Supabase Auth") and copy the 16-character code.
-4. Set your environment secrets inside Supabase:
+### Prerequisites
+- **Flutter SDK:** Version 3.10.7 or later. Verify with `flutter --version`.
+- **Dart SDK:** Bundled with Flutter.
+- **IDE:** Visual Studio Code (recommended with Flutter/Dart extensions) or Android Studio.
+- **Git:** For version control and repository cloning.
+- **Supabase CLI:** (Optional but recommended) For local edge function testing and database resets. Install via npm: `npm install -g supabase`.
+
+### Cloning the Repository
+1. Open your terminal and navigate to your preferred workspace.
+2. Clone the repository: `git clone <repository-url> i-like-it`
+3. Enter the project directory: `cd i-like-it`
+
+---
+
+## 🗄️ 2. Supabase Cloud Backend Setup
+
+The application relies on Supabase for PostgreSQL, Authentication, and Edge Functions. 
+
+### Creating the Project
+1. Log in to your [Supabase Dashboard](https://supabase.com/dashboard).
+2. Click **New Project**. Select your organization, provide a suitable name (e.g., "I Like It App"), and generate a secure database password. Ensure you save this password.
+3. Choose a region closest to your target audience to reduce latency.
+4. Wait a few minutes for the project provisioning to complete.
+
+### Configuring Authentication
+1. Navigate to **Authentication > Providers** in the Supabase sidebar.
+2. Enable the **Email** provider.
+3. *Crucial Step:* If you are handling OTPs strictly through the custom Edge Function, you can heavily customize the email templates, but standard Supabase OTPs work natively as well. 
+4. Under **Authentication > URL Configuration**, set your `Site URL` if you plan to use deep-linking redirects for web or standard auth flows.
+
+### Retrieving API Keys
+1. Go to **Project Settings > API**.
+2. Locate the `Project URL` and `anon public` key. 
+3. *Note:* Treat these as your public access points. They are safe to include in the client app.
+
+---
+
+## 🗃️ 3. Database Schema & Migrations
+
+The database structure relies on specific tables, Row Level Security (RLS) policies, and triggers.
+
+### Running the Schema Script
+1. Open the Supabase Dashboard and navigate to the **SQL Editor**.
+2. Open the local file located at `project-backend/schema.sql` in your IDE.
+3. Copy the entire contents of this file.
+4. Paste it into a new query window in the Supabase SQL Editor and hit **Run**.
+
+### What this script does:
+- **`users` Table:** Stores user profiles tied directly to Supabase Auth (`auth.uid()`).
+- **`folders` Table:** Organizes links. Includes RLS ensuring users only see their own folders.
+- **`links` Table:** Stores the bookmarked URLs along with scraped metadata (title, icon, image).
+- **Triggers & Functions:** Automatically creates a public profile row in `users` whenever a new identity is created in `auth.users`.
+
+---
+
+## ✉️ 4. Edge Function Configuration (OTP Emailer)
+
+The application uses a Deno-based Edge Function to securely send OTP login emails without exposing SMTP credentials to the client.
+
+### Option A: Gmail SMTP (Free Tier)
+Perfect for development or small-scale usage.
+1. Log into your Google Account and navigate to **Security**.
+2. Ensure **2-Step Verification** is enabled.
+3. Search for **App passwords**. Create a new app password named "Supabase Auth" and copy the 16-character string.
+4. Set the secrets directly via the Supabase CLI in your terminal:
    ```bash
    supabase secrets set GMAIL_EMAIL="your-email@gmail.com"
    supabase secrets set GMAIL_PASSWORD="your-16-char-app-password"
    ```
 
-### Option B: Resend API (Recommended for Production)
-1. Create an account on [Resend.com](https://resend.com) and generate an API Key.
-2. Set your environment secret inside Supabase:
+### Option B: Resend API (Production Recommended)
+Much higher reliability and better deliverability rates.
+1. Create a free account at [Resend](https://resend.com/).
+2. Add and verify your domain.
+3. Generate an API Key in the Resend dashboard.
+4. Insert the secret into Supabase:
    ```bash
    supabase secrets set RESEND_API_KEY="re_123456789..."
    ```
 
-### Deploy the Function
-Open a terminal in the `project-backend/` directory and deploy:
-```bash
-supabase functions deploy send-otp --no-verify-jwt
-```
-
-## 4️⃣ Frontend `.env` File
-Create a file named `.env` inside the `i_like_it/` directory:
-```env
-SUPABASE_URL=https://your-project-ref.supabase.co
-SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR...
-```
-
-## 5️⃣ First-Time Admin Setup
-To make a user an Admin (grants access to the Admin Dashboard in settings):
-1. Sign up normally via the app using your email.
-2. Go to your Supabase **SQL Editor** and run:
-   ```sql
-   UPDATE users SET role = 'admin' WHERE email = 'your-email@gmail.com';
+### Deploying the Function
+1. Open a terminal at the project root.
+2. Ensure you are logged into the CLI: `supabase login`.
+3. Link your project: `supabase link --project-ref your-project-ref`.
+4. Deploy the function:
+   ```bash
+   cd project-backend
+   supabase functions deploy send-otp --no-verify-jwt
    ```
 
-## ✅ Success Checklist
-- [ ] Database tables (`folders`, `links`, `users`) are created.
-- [ ] `.env` file exists in the Flutter directory.
-- [ ] `flutter pub get` completed successfully.
-- [ ] Edge Function `send-otp` is deployed and secrets are set.
-- [ ] You can log in via OTP and create a folder!
+---
 
-## 🆘 Troubleshooting
-- **OTP emails not arriving?** If using Gmail, verify your `GMAIL_PASSWORD` is an **App Password** (not your standard password) and that 2FA is enabled on your Google account. If using Resend, check your API logs. Ensure the Edge Function deployed successfully.
-- **Images not loading for links?** Certain sites (like YouTube) block bots with a 429 error. The extractor has a built-in YouTube bypass, but network blocks can still occur for heavily protected sites.
+## 📱 5. Flutter App Configuration
+
+Connect your mobile application to your newly provisioned backend.
+
+### Setting up `.env`
+1. Navigate to the frontend directory: `cd i_like_it`.
+2. Duplicate `.env.example` and rename it to `.env`.
+3. Fill in the variables with the keys you retrieved in Step 2:
+   ```env
+   SUPABASE_URL=https://your-project-ref.supabase.co
+   SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR...
+   ```
+4. *Important:* The `.env` file is already in your `.gitignore` to prevent secret leaks.
+
+### Installing Dependencies
+Run the following command in the `i_like_it` directory to fetch all pub packages:
+```bash
+flutter pub get
+```
+
+---
+
+## 👑 6. First-Time Admin Setup
+
+Certain in-app settings and dashboards are locked behind an admin role. 
+
+1. Launch the app and sign up normally using your email address and OTP.
+2. Once logged in (you will see an empty folder screen), return to the Supabase Dashboard.
+3. Open the **SQL Editor** and run the following command to elevate your account:
+   ```sql
+   UPDATE users SET role = 'admin' WHERE email = 'your-email@example.com';
+   ```
+4. Restart the app. The "Admin Settings" tile will now be visible in your profile menu.
+
+---
+
+## ✅ 7. Verification Sandbox
+
+To assure everything went perfectly, verify these key functionalities:
+1. **Authentication:** Attempt to sign out and sign back in. Did you receive the OTP email?
+2. **Database Write:** Create a new folder named "My First Folder". Check the `folders` table in Supabase to verify the row exists.
+3. **Link Scrape:** Add `https://flutter.dev` to your folder. The app should successfully scrape the Flutter logo and page title.
+
+---
+
+## 🆘 Troubleshooting & Common Issues
+
+- **Build Failures on iOS:** Ensure CocoaPods is updated. Run `cd ios && pod install --repo-update`.
+- **OTP Emails Not Sending:** Check your Edge Function logs in the Supabase Dashboard. If using Gmail, double-check that you used an *App Password* and not your standard login password.
+- **Supabase Connection Errors:** Ensure your internal device emulator has network access. The `SUPABASE_URL` must exact-match without a trailing slash.
+- **Link Scraper Fails (Timeout/429):** Some heavily protected sites block generic scraping user agents. The app has fallback handlers, but strict CDNs (like Cloudflare) may deny standard HTTP requests.
+
+---
+**Happy coding! You are now fully set up to develop and expand the app.**

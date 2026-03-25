@@ -1,100 +1,142 @@
-# 🧪 User Acceptance Testing (UAT) Plan
+# 🧪 Advanced User Acceptance Testing (UAT) & Quality Assurance Plan
 
-Use this manual testing sheet before every major release to verify the core user journey of **I Like It**.
+This document serves as the absolute source of truth for mandatory manual testing routines. These rigorous test scripts must be fully executed and passed before authorizing any major release to the Google Play Store or Apple App Store.
 
-## Core Features & UAT
-
-### Test 1: First-Time Onboarding
-- **Steps:** 
-  1. Open a fresh install of the app. 
-  2. Enter a brand new email address. 
-  3. Wait for the OTP in your inbox and enter it.
-- **Expected Result:** The app successfully logs in, provisions a new database row, and navigates to an empty Folder Screen.
-- **[ ] Pass / [ ] Fail**
-
-### Test 2: Persistent Login
-- **Steps:** 
-  1. Kill/Restart the app completely from memory.
-- **Expected Result:** App instantly loads the Folder Screen without asking for an email again.
-- **[ ] Pass / [ ] Fail**
-
-### Test 3: Creating a Folder
-- **Steps:** 
-  1. Tap the '+' Fab on the Folder screen. 
-  2. Select an icon. 
-  3. Name it "Test UAT" and hit Save.
-- **Expected Result:** A success snackbar appears, and the folder is instantly visible in the Grid without a loading screen interruption.
-- **[ ] Pass / [ ] Fail**
-
-### Test 4: Creating a Duplicate Folder
-- **Steps:** 
-  1. Try creating another folder named "Test uat" (different casing).
-- **Expected Result:** Dialog blocks the save process and warns the user that the folder name exists.
-- **[ ] Pass / [ ] Fail**
-
-### Test 5: Standard Link Scraping
-- **Steps:** 
-  1. Enter the "Test UAT" folder. 
-  2. Tap '+' to add a link. 
-  3. Paste a standard blog or Wikipedia URL.
-- **Expected Result:** App fetches the title, fetches an icon/image thumbnail, and displays it beautifully in the list.
-- **[ ] Pass / [ ] Fail**
-
-### Test 6: YouTube Scrape Bypass
-- **Steps:** 
-  1. Tap '+' and paste a valid YouTube video URL (`https://youtu.be/...`).
-- **Expected Result:** App successfully bypasses standard 429 scraping blocks and pulls the high-quality YouTube thumbnail.
-- **[ ] Pass / [ ] Fail**
-
-### Test 7: Native Sharing
-- **Steps:** 
-  1. Tap the 3-dots icon on the newly saved YouTube link. 
-  2. Tap "Share".
-- **Expected Result:** The native iOS/Android share sheet pops up with the URL ready to send to other apps.
-- **[ ] Pass / [ ] Fail**
-
-### Test 8: Edit & Delete Flow
-- **Steps:** 
-  1. Tap 3-dots > Edit. Change the title. Save. 
-  2. Tap 3-dots > Delete. Confirm delete.
-- **Expected Result:** The title visibly updates. Deletion successfully removes the link permanently from the UI.
-- **[ ] Pass / [ ] Fail**
-
-### Test 9: Cloud Synchronization
-- **Steps:** 
-  1. Create a folder and a link on Device A. 
-  2. Log in with the same email on Device B.
-- **Expected Result:** Device B syncs down the folders and links seamlessly in the background.
-- **[ ] Pass / [ ] Fail**
-
-### Test 10: Theming & UI
-- **Steps:** 
-  1. Open the top-right Folder menu overlay. 
-  2. Navigate to "Appearance" and switch between Dark/Light modes.
-- **Expected Result:** The UI updates instantly across all GlassContainers seamlessly.
-- **[ ] Pass / [ ] Fail**
-
-### Test 11: Logout Cleanup
-- **Steps:** 
-  1. Go to Settings > Logout. Confirm.
-- **Expected Result:** The user is logged out, the local SQLite database is fully wiped (links disappear), and the app returns to the Email Login screen.
-- **[ ] Pass / [ ] Fail**
+It verifies the core user journey, ensures critical system stability, and checks for edge cases in network degradation, invalid user inputs, and background sync continuity.
 
 ---
 
-## 🐛 Bug Report Template
-If a test fails, copy this template and create a ticket:
+## 🛡️ Preparation Phase
 
-**Test Failed:** [Test Name / Number]
-**Device/OS:** [e.g., iPhone 15, iOS 17.2 or Pixel 7, Android 14]
-**Steps to Reproduce:**
-1. 
-2. 
-**Observed Behavior:** [What actually happened?]
-**Expected Behavior:** [What should have happened?]
+Before beginning:
+1. Ensure the app is fully deleted from the testing device (to clear previous SecureStorage and SQLite data).
+2. Install a completely fresh release build (`flutter build apk --release` or `flutter build ipa --release`).
+3. Have at least one valid, accessible email inbox ready to receive OTPs.
+4. Have a secondary device or simulator ready to test the dual-device cloud synchronization.
 
-## ✍️ Sign-off
-**Tested By:** _________________________
-**Date:** _________________________
-**Release Version:** _________________________
-**Status:** [ APPROVED / REJECTED ]
+---
+
+## 🧪 Phase 1: Authentication & Onboarding Constraints
+
+### Test 1.1: First-Time Initialization
+- **Action:** Open the fresh app installation. Enter a completely new, valid email address and click 'Send OTP'.
+- **Verification:** Ensure the UI correctly transitions to a loading state. Verify an email containing a 6-digit code arrives via the Edge Function within 10 seconds.
+- **Status:** **[ ] Pass / [ ] Fail**
+
+### Test 1.2: Invalid OTP Handling
+- **Action:** Enter an intentionally incorrect 6-digit OTP code on the verification screen.
+- **Verification:** The app must NOT crash. It must display a clear, readable SnackBar or Dialog indicating "Invalid Code" and allow the user to immediately try again.
+- **Status:** **[ ] Pass / [ ] Fail**
+
+### Test 1.3: Successful Login & Database Provisioning
+- **Action:** Enter the correct OTP.
+- **Verification:** The app successfully validates the JWT, stashes the tokens in SecureStorage, creates a new row in the Supabase `users` table, and cleanly navigates the user to the (empty) Folders Dashboard.
+- **Status:** **[ ] Pass / [ ] Fail**
+
+### Test 1.4: Persistent Session (Memory Wipe)
+- **Action:** Force close the app completely (swipe it away from the OS multitasking view). Relaunch the app.
+- **Verification:** The app must instantly load the Folders Dashboard. It must absolutely not request an email or OTP again.
+- **Status:** **[ ] Pass / [ ] Fail**
+
+---
+
+## 🧪 Phase 2: Core Offline Capabilities & CRUD Operations
+
+**CRITICAL INSTRUCTION:** For Phase 2, please disable the Wi-Fi and Cellular Connection on your testing device to verify the offline-first architecture.
+
+### Test 2.1: Folder Creation (Offline)
+- **Action:** Tap the '+' Floating Action Button. Select a blue icon. Name the folder "Offline Tech Docs" and hit Save.
+- **Verification:** The dialog dismisses beautifully, a success snackbar appears, and the new folder tile renders immediately in the grid without any endless loading spinners or network errors.
+- **Status:** **[ ] Pass / [ ] Fail**
+
+### Test 2.2: Duplicate Constraint (Offline)
+- **Action:** Attempt to create another folder explicitly named "offline tech docs" (testing lower-case matching).
+- **Verification:** The creation is blocked locally. An explicit warning dialog informs the user that a folder with this name already exists.
+- **Status:** **[ ] Pass / [ ] Fail**
+
+### Test 2.3: Entering Links (Offline Fallback)
+- **Action:** Open "Offline Tech Docs". Add a new Link: `https://github.com/flutter/flutter`.
+- **Verification:** Since the network is down, the web scraper will fail gracefully. The app must still insert the raw URL into SQLite, render a generic placeholder icon/title in the list, and not throw a fatal red screen or crash block.
+- **Status:** **[ ] Pass / [ ] Fail**
+
+---
+
+## 🧪 Phase 3: Synchronization & Network Recovery
+
+**CRITICAL INSTRUCTION:** Re-enable Wi-Fi and Cellular Connection on the testing device.
+
+### Test 3.1: Background Cloud Sync Recovery
+- **Action:** Resume active network connection. Pull down on the Folders List (trigger `RefreshIndicator`) or wait for the automatic sync timer.
+- **Verification:** The local background worker pushes the offline changes to Supabase. Navigate to your Supabase Dashboard -> Table Editor -> `folders` and `links`. Verify that the "Offline Tech Docs" folder and the GitHub link have correctly populated the cloud tables.
+- **Status:** **[ ] Pass / [ ] Fail**
+
+### Test 3.2: Standard Web Scraping
+- **Action:** Inside the folder, add a new link: `https://en.wikipedia.org/wiki/Dart_(programming_language)`.
+- **Verification:** The app rapidly reaches out, scrapes the meta tags, updates the UI dynamically, and displays the Wikipedia logo and the correct page title on the `LinkCard`.
+- **Status:** **[ ] Pass / [ ] Fail**
+
+### Test 3.3: Advanced Scraper Verification (YouTube)
+- **Action:** Add a highly protected link: `https://www.youtube.com/watch?v=dQw4w9WgXcQ`.
+- **Verification:** The app successfully bypasses standard 429 scraping bot-blocks using its specialized YouTube parser and cleanly displays the rich, high-resolution video thumbnail on the card.
+- **Status:** **[ ] Pass / [ ] Fail**
+
+### Test 3.4: Dual Device Reflection (Cloud Downsync)
+- **Action:** Take your secondary device (Device B). Install the app and log in using the exact same email/OTP.
+- **Verification:** Within 5 seconds, Device B must download the remote Supabase rows, write them to its local SQLite, and render the "Offline Tech Docs" folder and both the Github and Wikipedia links exactly as they appear on Device A.
+- **Status:** **[ ] Pass / [ ] Fail**
+
+---
+
+## 🧪 Phase 4: UI, UX, and Native Integrations
+
+### Test 4.1: Seamless Theming Engine
+- **Action:** Open the top right context menu. Navigate to Appearance settings. Rapidly switch from Light Mode -> Dark Mode -> Light Mode.
+- **Verification:** All Glassmorphism containers, fonts, and background scaffold colors respond instantly and accurately without requiring an app restart or glitching the UI tree.
+- **Status:** **[ ] Pass / [ ] Fail**
+
+### Test 4.2: Native OS Sharing Target
+- **Action:** Tap the 3-dots context menu on the Wikipedia link card. Tap "Share".
+- **Verification:** The native iOS `UIActivityViewController` or Android `Intent.ACTION_SEND` modal pops up completely populated with the URL, ready to be forwarded to SMS, WhatsApp, Mail, etc.
+- **Status:** **[ ] Pass / [ ] Fail**
+
+### Test 4.3: Destructive Operations (Cascading Deletes)
+- **Action:** Tap the 3-dots on the "Offline Tech Docs" folder and click Delete. Confirm the warning dialog.
+- **Verification:** The folder instantly vanishes from the UI. After 10 seconds, check the Supabase Cloud console. Verify the folder row is deleted AND verify that all child links that lived inside it were destroyed via the database cascading foreign keys.
+- **Status:** **[ ] Pass / [ ] Fail**
+
+### Test 4.4: Hard Logout & Data Purge
+- **Action:** Navigate to Settings > Logout. Confirm the massive destructive action.
+- **Verification:** The user is logged out and returned to the Email Login screen. Critically inspect the local filesystem or attempt to bypass the auth screen—ensure the SQLite database on the device has been irreversibly truncated and destroyed (preventing local privacy leaks).
+- **Status:** **[ ] Pass / [ ] Fail**
+
+---
+
+## 🐛 Defect Logging Protocol
+
+If any of the above tests Result in a [Fail], execution must halt, and a formal Github Issue or Jira Ticket must be opened using this exact template format:
+
+```text
+**Failed Sequence:** Phase [X], Test [X.X] - [Name of Test]
+**Device Under Test:** [e.g., iPhone 15 Pro, iOS 17.2 / Pixel 8, Android 14]
+**Build Tested:** Release Candidate [v1.X.X]
+
+**Exact Steps to Reproduce the Failure:**
+1. [Step 1]
+2. [Step 2]
+3. [Step 3]
+
+**Stated Expected Behavior:** [What the test script said should happen]
+**Observed Actual Behavior:** [Detail exactly what went wrong, including crash logs or visual glitches]
+```
+
+## ✍️ Final Release Sign-off
+
+By signing below, the Lead QA tester formally guarantees that every single test in this document has been manually executed and resulted in a `[Pass]` on a physical release build on both an iOS and Android device.
+
+**Lead QA / Tester Name:** _________________________
+
+**Date of Full Execution:** _________________________
+
+**Target Release Version:** _________________________
+
+**Deployment Status:** [ READY FOR PUBLICATION / BLOCKED ]
