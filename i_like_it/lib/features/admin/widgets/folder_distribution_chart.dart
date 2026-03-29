@@ -99,35 +99,25 @@ class _FolderDistributionChartState extends State<FolderDistributionChart> {
                         Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            AnimatedSwitcher(
-                              duration: const Duration(milliseconds: 200),
-                              child: _touchedIndex != -1 && _touchedIndex < widget.data.length
+                            _touchedIndex != -1 && _touchedIndex < widget.data.length
                                 ? Text(
                                     widget.data.entries.toList()[_touchedIndex].value.toString(),
-                                    key: ValueKey('val_$_touchedIndex'),
                                     style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: colorScheme.onSurface),
                                   )
                                 : Text(
                                     total.toString(),
-                                    key: const ValueKey('total'),
                                     style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: colorScheme.onSurface),
                                   ),
-                            ),
-                            AnimatedSwitcher(
-                              duration: const Duration(milliseconds: 200),
-                              child: _touchedIndex != -1 && _touchedIndex < widget.data.length
+                            _touchedIndex != -1 && _touchedIndex < widget.data.length
                                 ? Text(
                                     widget.data.entries.toList()[_touchedIndex].key,
-                                    key: ValueKey('name_$_touchedIndex'),
                                     style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant, letterSpacing: 1.0),
                                     overflow: TextOverflow.ellipsis,
                                   )
                                 : Text(
                                     'Topics',
-                                    key: const ValueKey('label'),
                                     style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant, letterSpacing: 1.0),
                                   ),
-                            ),
                           ],
                         ),
                       ],

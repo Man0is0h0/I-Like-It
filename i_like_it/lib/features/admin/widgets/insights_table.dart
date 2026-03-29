@@ -18,6 +18,7 @@ class InsightsTable extends StatefulWidget {
 
 class _InsightsTableState extends State<InsightsTable> {
   final ScrollController _scrollController = ScrollController();
+  bool _showAll = false;
 
   @override
   void dispose() {
@@ -50,6 +51,8 @@ class _InsightsTableState extends State<InsightsTable> {
     // Sort valid data
     var sortedEntries = widget.data.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
+
+    final displayEntries = _showAll ? sortedEntries : sortedEntries.take(7).toList();
 
     // Calculate total for percentage
     final total = widget.data.values.fold(0, (sum, val) => sum + val);
@@ -105,7 +108,7 @@ class _InsightsTableState extends State<InsightsTable> {
                       DataColumn(label: Text('SHARE', style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 1.0))),
                       DataColumn(label: Text('STATUS', style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 1.0))),
                     ],
-                    rows: sortedEntries.map((entry) {
+                    rows: displayEntries.map((entry) {
                       final percentage = total > 0 
                           ? (entry.value / total * 100).toStringAsFixed(1) 
                           : "0.0";
@@ -147,6 +150,25 @@ class _InsightsTableState extends State<InsightsTable> {
               ),
             ),
           ),
+          if (sortedEntries.length > 7) ...[
+            const SizedBox(height: 16),
+            Center(
+              child: TextButton(
+                onPressed: () {
+                  setState(() {
+                    _showAll = !_showAll;
+                  });
+                },
+                child: Text(
+                  _showAll ? 'Show Less Categories' : 'View All Categories',
+                  style: TextStyle(
+                    color: colorScheme.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
