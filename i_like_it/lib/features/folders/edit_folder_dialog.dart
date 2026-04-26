@@ -50,7 +50,7 @@ class _EditFolderDialogState extends State<EditFolderDialog> {
     final db = await DatabaseHelper.instance.database;
     final existing = await db.query(
       'folders',
-      where: 'LOWER(name) = LOWER(?) AND id != ?',
+      where: 'LOWER(name) = LOWER(?) AND id != ? AND is_deleted = 0',
       whereArgs: [name, widget.folder.id],
     );
 

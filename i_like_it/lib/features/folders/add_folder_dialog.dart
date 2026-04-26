@@ -53,7 +53,7 @@ class _AddFolderDialogState extends State<AddFolderDialog> {
     final db = await DatabaseHelper.instance.database;
     final existing = await db.query(
       'folders',
-      where: 'LOWER(name) = LOWER(?)',
+      where: 'LOWER(name) = LOWER(?) AND is_deleted = 0',
       whereArgs: [name],
     );
 
