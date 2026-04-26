@@ -3,7 +3,7 @@ import 'dart:ui'; // For BackdropFilter
 import '../../core/database/database_helper.dart';
 import '../../core/models/folder_model.dart';
 import '../../core/utils/metadata_extractor.dart';
-import '../../core/widgets/link_saved_popup.dart';
+import '../../core/widgets/success_confetti_popup.dart';
 import '../../theme/app_theme.dart';
 import 'add_folder_dialog.dart';
 import 'edit_folder_dialog.dart';
@@ -360,7 +360,11 @@ class _FolderScreenState extends State<FolderScreen> with WidgetsBindingObserver
       if (!mounted) return;
 
       // Show success popup
-      await LinkSavedPopup.show(context);
+      await SuccessConfettiPopup.show(
+        context: context,
+        title: 'Link Saved!',
+        message: 'Your link has been saved successfully',
+      );
 
       // Synch immediately to update active status
       SyncManager.instance.sync();
@@ -813,11 +817,10 @@ class _FolderScreenState extends State<FolderScreen> with WidgetsBindingObserver
       SyncManager.instance.sync();
       
       if (result is Folder && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Folder "${result.name}" created successfully'),
-            behavior: SnackBarBehavior.floating,
-          ),
+        await SuccessConfettiPopup.show(
+          context: context,
+          title: 'Folder Created!',
+          message: 'Your folder "${result.name}" has been created successfully',
         );
       }
     }

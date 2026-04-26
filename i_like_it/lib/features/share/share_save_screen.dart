@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import '../../core/database/database_helper.dart';
 import '../../core/models/folder_model.dart';
 import '../../core/utils/metadata_extractor.dart';
-import '../../core/widgets/link_saved_popup.dart';
+import '../../core/widgets/success_confetti_popup.dart';
 import '../../theme/app_theme.dart';
 import '../links/folder_suggestion_dialog.dart';
 import '../../core/widgets/gradient_scaffold.dart'; // New
@@ -191,9 +191,7 @@ class _ShareSaveScreenState extends State<ShareSaveScreen> {
                                   '',
                                   result['note'] ?? '',
                                 );
-                                if (!mounted) return;
-                                navigator.pop();
-                                SystemNavigator.pop();
+                                // Removed redundant pops as _saveLinkToFolder handles closing the app
                               },
                             );
                           },
@@ -279,10 +277,19 @@ class _ShareSaveScreenState extends State<ShareSaveScreen> {
 
       print('[SHARE_SCREEN] Saved link to folder ${folder.id}');
 
-      if (!mounted) return;
+      print('[SHARE_SCREEN] Triggering Confetti Popup (mounted: $mounted)');
+      if (!mounted) {
+        print('[SHARE_SCREEN] ABORTING: Not mounted!');
+        return;
+      }
 
       // Show success popup
-      await LinkSavedPopup.show(context);
+      await SuccessConfettiPopup.show(
+        context: context,
+        title: 'Link Saved!',
+        message: 'Your link has been saved successfully',
+      );
+      print('[SHARE_SCREEN] Confetti Popup finished, closing app...');
 
       // Close the app using platform channel to return to caller
       const platform = MethodChannel('shared_link');
@@ -346,6 +353,12 @@ class _ShareSaveScreenState extends State<ShareSaveScreen> {
   }
 
 
+
+  @override
+  void dispose() {
+    print('[SHARE_SCREEN] ShareSaveScreen DISPOSED');
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {

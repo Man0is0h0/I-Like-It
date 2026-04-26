@@ -3,7 +3,7 @@ import 'package:sqflite/sqflite.dart';
 import '../../core/database/database_helper.dart';
 import '../../core/models/link_model.dart';
 import '../../core/utils/metadata_extractor.dart';
-import '../../core/widgets/link_saved_popup.dart';
+import '../../core/widgets/success_confetti_popup.dart';
 import '../../theme/app_theme.dart';
 
 class AddLinkDialog extends StatefulWidget {
@@ -144,7 +144,11 @@ class _AddLinkDialogState extends State<AddLinkDialog> {
 
       if (mounted) {
         // Show success popup
-        await LinkSavedPopup.show(context);
+        await SuccessConfettiPopup.show(
+          context: context,
+          title: 'Link Saved!',
+          message: 'Your link has been saved successfully',
+        );
         Navigator.pop(context, true);
       }
     } catch (e) {
