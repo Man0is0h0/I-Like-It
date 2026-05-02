@@ -26,7 +26,7 @@ class DatabaseHelper {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, 'i_like_it.db');
 
-    return await openDatabase(path, version: 6, onCreate: _onCreate, onUpgrade: _onUpgrade);
+    return await openDatabase(path, version: 7, onCreate: _onCreate, onUpgrade: _onUpgrade);
   }
 
   Future<void> _onCreate(Database db, int version) async {
@@ -39,7 +39,8 @@ class DatabaseHelper {
       cloud_id TEXT,
       updated_at TEXT,
       is_deleted INTEGER DEFAULT 0,
-      synced_at TEXT
+      synced_at TEXT,
+      system_category TEXT
     )
   ''');
 
@@ -162,6 +163,15 @@ class DatabaseHelper {
         print('Migration v5->v6 completed successfully');
       } catch (e) {
         print('Migration v5->v6 error: $e');
+      }
+    }
+    if (oldVersion < 7) {
+      // Catch missing system_category from fresh installs on v6
+      try {
+        await db.execute('ALTER TABLE folders ADD COLUMN system_category TEXT');
+        print('Migration v6->v7 completed successfully');
+      } catch (e) {
+        print('Migration v6->v7 error (already exists): $e');
       }
     }
   }
