@@ -241,54 +241,45 @@ class _FolderSuggestionDialogState extends State<FolderSuggestionDialog> {
         },
       ),
       actions: [
-        Expanded(
-          child: Row(
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        OutlinedButton.icon(
+          onPressed: () {
+            if (_lastSuggestion != null) {
+              _showCreateFolderDialog(_lastSuggestion!);
+            } else {
+              _createFolderWithName('');
+            }
+          },
+          icon: const Icon(Icons.add_circle_outline, size: 20),
+          label: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () {
-                    if (_lastSuggestion != null) {
-                      _showCreateFolderDialog(_lastSuggestion!);
-                    } else {
-                      _createFolderWithName('');
-                    }
-                  },
-                  icon: const Icon(Icons.add_circle_outline, size: 20),
-                  label: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Text(
-                        'Create new folder',
-                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
-                      ),
-                      if (_lastSuggestion != null && _lastSuggestion!.suggestedNewFolderName.isNotEmpty)
-                        Text(
-                          _lastSuggestion!.suggestedNewFolderName,
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: Theme.of(context).brightness == Brightness.dark 
-                                ? Colors.white54 
-                                : AppTheme.textSecondary,
-                          ),
-                        ),
-                    ],
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    alignment: Alignment.centerLeft,
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+              const Text(
+                'Create new folder',
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+              ),
+              if (_lastSuggestion != null && _lastSuggestion!.suggestedNewFolderName.isNotEmpty)
+                Text(
+                  _lastSuggestion!.suggestedNewFolderName,
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: Theme.of(context).brightness == Brightness.dark 
+                        ? Colors.white54 
+                        : AppTheme.textSecondary,
                   ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cancel'),
-              ),
             ],
+          ),
+          style: OutlinedButton.styleFrom(
+            alignment: Alignment.centerLeft,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
         ),
       ],
