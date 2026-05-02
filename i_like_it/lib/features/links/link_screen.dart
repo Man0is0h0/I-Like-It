@@ -100,8 +100,13 @@ class _LinkScreenState extends State<LinkScreen> {
     final colorScheme = theme.colorScheme;
 
     return GradientScaffold(
-      body: CustomScrollView(
-        slivers: [
+      body: RefreshIndicator(
+        onRefresh: () async {
+          await SyncManager.instance.sync();
+          await _loadLinks();
+        },
+        child: CustomScrollView(
+          slivers: [
           SliverAppBar(
             pinned: true,
             expandedHeight: 100.0,
@@ -272,7 +277,8 @@ class _LinkScreenState extends State<LinkScreen> {
             
            // Fab padding space
            const SliverToBoxAdapter(child: SizedBox(height: 80)),
-        ],
+          ],
+        ),
       ),
       floatingActionButton: links.isEmpty ? null : FloatingActionButton(
         backgroundColor: colorScheme.primary,

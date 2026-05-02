@@ -591,6 +591,7 @@ class _FolderScreenState extends State<FolderScreen> with WidgetsBindingObserver
             ),
       body: RefreshIndicator(
         onRefresh: () async {
+          await SyncManager.instance.sync(); // Force a cloud sync
           await _loadFolders(silent: true);
           await _checkAdmin();
         },
