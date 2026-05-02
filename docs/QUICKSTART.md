@@ -51,44 +51,54 @@ The database structure relies on specific tables, Row Level Security (RLS) polic
 
 ### Running the Schema Script
 1. Open the Supabase Dashboard and navigate to the **SQL Editor**.
-2. Open the local file located at `project-backend/schema.sql` in your IDE.
-3. Copy the entire contents of this file.
-4. Paste it into a new query window in the Supabase SQL Editor and hit **Run**.
+2. **CRITICAL:** Before running the script, enable the required extensions by running this command:
+   ```sql
+   create extension if not exists pg_net;
+   ```
+3. Open the local file located at `project-backend/schema.sql` in your IDE.
+4. Copy the entire contents of this file.
+5. Paste it into a new query window in the Supabase SQL Editor.
+6. **IMPORTANT:** Search the pasted text for `izlahmslmpmfeecpgkav` and replace it with your own **Project ID** (found in your URL).
+7. **IMPORTANT:** Search for `SERVICE_ROLE_KEY` and replace it with your actual Service Role Key (from Settings -> API).
+8. Hit **Run**.
 
 ### What this script does:
 - **`users` Table:** Stores user profiles tied directly to Supabase Auth (`auth.uid()`).
 - **`folders` Table:** Organizes links. Includes RLS ensuring users only see their own folders.
 - **`links` Table:** Stores the bookmarked URLs along with scraped metadata (title, icon, image).
-- **Triggers & Functions:** Automatically creates a public profile row in `users` whenever a new identity is created in `auth.users`.
+- **Triggers & Functions:** Automatically creates a public profile row in `users` whenever a new identity is created in `auth.users`. It also handles the **Email OTP Trigger** whenever a login code is requested.
 
 ---
 
 ## ✉️ 4. Edge Function Configuration (OTP Emailer)
 
-The application uses a Deno-based Edge Function to securely send OTP login emails without exposing SMTP credentials to the client.
+The application uses a Deno-based Edge Function to securely send OTP login emails. You MUST configure your email provider secrets in Supabase for this to work.
 
-### Option A: Gmail SMTP (Free Tier)
-Perfect for development or small-scale usage.
-1. Log into your Google Account and navigate to **Security**.
-2. Ensure **2-Step Verification** is enabled.
-3. Search for **App passwords**. Create a new app password named "Supabase Auth" and copy the 16-character string.
-4. Set the secrets directly via the Supabase CLI in your terminal:
-   ```bash
-   supabase secrets set GMAIL_EMAIL="your-email@gmail.com"
-   supabase secrets set GMAIL_PASSWORD="your-16-char-app-password"
-   ```
+### Step 1: Choose Your Provider
 
-### Option B: Resend API (Production Recommended)
-Much higher reliability and better deliverability rates.
-1. Create a free account at [Resend](https://resend.com/).
-2. Add and verify your domain.
-3. Generate an API Key in the Resend dashboard.
-4. Insert the secret into Supabase:
-   ```bash
-   supabase secrets set RESEND_API_KEY="re_123456789..."
-   ```
+#### **Option A: Gmail (Free & Easiest for Dev)**
+1.  **Enable 2-Step Verification:** Go to your Google Account -> Security and turn it ON.
+2.  **Generate an App Password:**
+    *   Search for **"App Passwords"** in your Google Account.
+    *   Select "Other" and name it "I Like It App".
+    *   Copy the **16-character code** (e.g., `xxxx xxxx xxxx xxxx`).
+3.  **Set Supabase Secrets:**
+    In your terminal (linked to your project):
+    ```bash
+    supabase secrets set GMAIL_EMAIL="your-email@gmail.com"
+    supabase secrets set GMAIL_PASSWORD="your-16-character-code-no-spaces"
+    ```
 
-### Deploying the Function
+#### **Option B: Resend (Professional/Production)**
+1.  **Sign up:** Create an account at [resend.com](https://resend.com).
+2.  **Get API Key:** Copy the API Key from your Resend dashboard.
+3.  **Set Supabase Secrets:**
+    In your terminal:
+    ```bash
+    supabase secrets set RESEND_API_KEY="re_your_api_key_here"
+    ```
+
+### Step 2: Deploy the Function
 1. Open a terminal at the project root.
 2. Ensure you are logged into the CLI: `supabase login`.
 3. Link your project: `supabase link --project-ref your-project-ref`.
@@ -97,6 +107,13 @@ Much higher reliability and better deliverability rates.
    cd project-backend
    supabase functions deploy send-otp --no-verify-jwt
    ```
+
+### Step 3: Troubleshooting Email Sending
+- **Check Logs:** Go to Supabase -> Edge Functions -> `send-otp` -> **Logs**.
+- **Error "No Email service configured":** You forgot to set either `GMAIL_PASSWORD` or `RESEND_API_KEY` in the secrets.
+- **Invalid Credentials:** For Gmail, ensure you used an **App Password**, not your main account password.
+- **Resend Free Tier:** Resend only allows sending to the email you signed up with until you verify a custom domain.
+
 
 ---
 
