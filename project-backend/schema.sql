@@ -120,8 +120,12 @@ BEGIN
     -- Generate 6-digit OTP
     v_otp := lpad(floor(random() * 1000000)::text, 6, '0');
     
-    INSERT INTO public.email_otps (email, otp_code)
-    VALUES (p_email, v_otp);
+    INSERT INTO public.email_otps (email, otp_code, expires_at)
+    VALUES (p_email, v_otp, now() + interval '15 minutes')
+    ON CONFLICT (email) DO UPDATE 
+    SET otp_code = EXCLUDED.otp_code,
+        expires_at = EXCLUDED.expires_at,
+        created_at = now();
     
     RETURN jsonb_build_object('success', true);
 END;
