@@ -168,6 +168,11 @@ To assure everything went perfectly, verify these key functionalities:
 - **OTP Emails Not Sending:** Check your Edge Function logs in the Supabase Dashboard. If using Gmail, double-check that you used an *App Password* and not your standard login password.
 - **Supabase Connection Errors:** Ensure your internal device emulator has network access. The `SUPABASE_URL` must exact-match without a trailing slash.
 - **Link Scraper Fails (Timeout/429):** Some heavily protected sites block generic scraping user agents. The app has fallback handlers, but strict CDNs (like Cloudflare) may deny standard HTTP requests.
+- **AAPT2 Build Error (Splash Screen):** If you see an error like `resource android:attr/windowSplashScreenAnimatedIcon not found` or a general AAPT2 failure during `flutter build apk`, it is likely caused by a corrupted or invalid `assets/splash_logo.png`. To fix this:
+    1. Replace `assets/splash_logo.png` with a valid, high-resolution PNG file.
+    2. Run `flutter clean`.
+    3. Run `flutter pub get`.
+    4. Re-run your build. (Currently, the splash logo configuration is commented out in `flutter_native_splash.yaml` to prevent this crash).
 
 ---
 **Happy coding! You are now fully set up to develop and expand the app.**
