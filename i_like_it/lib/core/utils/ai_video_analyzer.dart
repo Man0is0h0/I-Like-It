@@ -6,19 +6,21 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 class AIVideoAnalyzer {
   static String? _geminiApiKey = dotenv.env['GEMINI_API_KEY'];
 
-  /// Analyze video URL and suggest folder names using Gemini API
+  /// Analyze link content and suggest folder names using Gemini API
   static Future<List<String>> analyzeVideoAndSuggestFolders({
     required String videoUrl,
     required String videoTitle,
     required String videoDescription,
+    String? content,
+    List<String>? existingFolders,
   }) async {
     try {
-      print('[AI_ANALYZER] Analyzing video: $videoTitle');
+      print('[AI_ANALYZER] Analyzing content: $videoTitle');
 
-      final prompt = _buildVideoAnalysisPrompt(videoTitle, videoDescription);
+      final prompt = _buildVideoAnalysisPrompt(videoTitle, videoDescription, content, existingFolders);
       return await _callGeminiAPI(prompt);
     } catch (e) {
-      print('[AI_ANALYZER] Error analyzing video: $e');
+      print('[AI_ANALYZER] Error analyzing content: $e');
       return [];
     }
   }
@@ -67,14 +69,26 @@ class AIVideoAnalyzer {
     }
   }
 
-  /// Build prompt for video analysis
-  static String _buildVideoAnalysisPrompt(String title, String description) {
-    return '''Based on this video information, suggest 3 concise folder names that would organize this content well. Return only folder names, one per line.
+  /// Build prompt for content analysis
+  static String _buildVideoAnalysisPrompt(String title, String description, String? content, List<String>? existingFolders) {
+    String existingFoldersText = existingFolders != null && existingFolders.isNotEmpty
+        ? 'Existing Folders to choose from:\n- ' + existingFolders.join('\n- ')
+        : 'No existing folders.';
 
-Video Title: $title
+    return '''Based on this content information, suggest 3 concise NEW folder names that would organize this content well, AND pick the 1 BEST matching existing folder if any (or none).
+
+Content Information:
+Title: $title
 Description: $description
+Page Content/Keywords: ${content != null && content.length > 500 ? content.substring(0, 500) : content ?? "None"}
 
-Format your response as a simple list with just the folder names. Each name should be 1-3 words maximum and descriptive.''';
+$existingFoldersText
+
+Format your response exactly like this:
+NEW: Folder Name 1
+NEW: Folder Name 2
+NEW: Folder Name 3
+EXISTING: [Best matching existing folder name, or "None"]''';
   }
 
   /// Parse folder suggestions from AI response
@@ -82,31 +96,33 @@ Format your response as a simple list with just the folder names. Each name shou
     try {
       final suggestions = <String>[];
 
-      // Look for numbered suggestions
       final lines = response.split('\n');
       for (final line in lines) {
         final trimmed = line.trim();
         if (trimmed.isEmpty) continue;
 
-        // Extract text after numbers, dashes, or bullets
-        String suggestion = trimmed;
-        suggestion = suggestion
-            .replaceAll(RegExp(r'^["\d+"\-*)\\]\s]*'), '')
-            .trim();
-        // Remove leading/trailing quotes
-        if (suggestion.startsWith('"') || suggestion.startsWith("'")) {
-          suggestion = suggestion.substring(1);
-        }
-        if (suggestion.endsWith('"') || suggestion.endsWith("'")) {
-          suggestion = suggestion.substring(0, suggestion.length - 1);
-        }
-
-        if (suggestion.isNotEmpty && suggestion.length < 50) {
-          suggestions.add(suggestion);
+        // Extract folder names from NEW: and EXISTING: prefixes
+        if (trimmed.startsWith('NEW:')) {
+          String suggestion = trimmed.replaceFirst('NEW:', '').trim();
+          suggestion = suggestion.replaceAll(RegExp(r'^["\d+"\-*)\\]\s]*'), '').trim();
+          if (suggestion.startsWith('"') || suggestion.startsWith("'")) {
+            suggestion = suggestion.substring(1);
+          }
+          if (suggestion.endsWith('"') || suggestion.endsWith("'")) {
+            suggestion = suggestion.substring(0, suggestion.length - 1);
+          }
+          if (suggestion.isNotEmpty && suggestion.length < 50) {
+            suggestions.add(suggestion);
+          }
+        } else if (trimmed.startsWith('EXISTING:')) {
+           String existing = trimmed.replaceFirst('EXISTING:', '').trim();
+           if (existing.toLowerCase() != 'none' && existing.isNotEmpty) {
+             // Prefix existing suggestions to differentiate them if needed, or just insert at front
+             suggestions.insert(0, "EXISTING:" + existing);
+           }
         }
       }
 
-      // Return top 5 suggestions
       return suggestions.take(5).toList();
     } catch (e) {
       print('[AI_ANALYZER] Error parsing suggestions: $e');

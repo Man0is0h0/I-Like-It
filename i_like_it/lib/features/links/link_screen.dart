@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+import '../../core/utils/metadata_extractor.dart';
+import '../../core/utils/url_utils.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../core/database/database_helper.dart';
 import '../../core/models/link_model.dart';
 import 'add_link_dialog.dart';
 import 'edit_link_dialog.dart';
 import 'link_card.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../core/sync/sync_manager.dart';
 import 'dart:async';
 import '../../core/widgets/gradient_scaffold.dart'; // New
@@ -98,6 +99,12 @@ class _LinkScreenState extends State<LinkScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final double appBarHeight = widget.folderName.length > 50 
+        ? 160.0 
+        : (widget.folderName.length > 30 ? 140.0 : 100.0);
+    final double titleFontSize = widget.folderName.length > 50 
+        ? 15.0 
+        : (widget.folderName.length > 30 ? 17.0 : 20.0);
 
     return GradientScaffold(
       body: RefreshIndicator(
@@ -109,7 +116,7 @@ class _LinkScreenState extends State<LinkScreen> {
           slivers: [
           SliverAppBar(
             pinned: true,
-            expandedHeight: 100.0,
+            expandedHeight: appBarHeight,
             backgroundColor: Colors.transparent, // Transparent for gradient
             surfaceTintColor: Colors.transparent,
             leading: IconButton(
@@ -120,17 +127,33 @@ class _LinkScreenState extends State<LinkScreen> {
               ),
               onPressed: () => Navigator.pop(context),
             ),
-            flexibleSpace: FlexibleSpaceBar(
-              title: Text(
-                widget.folderName,
-                style: theme.textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 20,
-                  letterSpacing: -0.5,
-                ),
-              ),
-              centerTitle: true,
-              titlePadding: const EdgeInsets.only(bottom: 16),
+            flexibleSpace: LayoutBuilder(
+              builder: (BuildContext context, BoxConstraints constraints) {
+                final double topPadding = MediaQuery.of(context).padding.top;
+                final double collapsedHeight = kToolbarHeight + topPadding;
+                // If current height is close to collapsed height, it is collapsed
+                final bool isCollapsed = constraints.maxHeight <= collapsedHeight + 20.0;
+
+                return FlexibleSpaceBar(
+                  title: Text(
+                    widget.folderName,
+                    textAlign: TextAlign.center,
+                    maxLines: isCollapsed ? 1 : 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      fontSize: isCollapsed ? 16.0 : titleFontSize,
+                      letterSpacing: -0.5,
+                      color: colorScheme.onSurface,
+                    ),
+                  ),
+                  centerTitle: true,
+                  titlePadding: EdgeInsets.symmetric(
+                    horizontal: 56,
+                    vertical: isCollapsed ? 12 : 16,
+                  ),
+                );
+              },
             ),
           ),
           
@@ -201,10 +224,11 @@ class _LinkScreenState extends State<LinkScreen> {
                       child: LinkCard(
                         link: link,
                         onTap: () {
-                          launchUrl(
-                            Uri.parse(link.url),
-                            mode: LaunchMode.externalApplication,
-                          );
+                          String finalUrl = MetadataExtractor.extractCleanUrl(link.url);
+                          if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://')) {
+                            finalUrl = 'https://$finalUrl';
+                          }
+                          UrlUtils.launchBrowserOrApp(context, finalUrl);
                         },
                         trailing: PopupMenuButton(
                           icon: Icon(Icons.more_vert, 

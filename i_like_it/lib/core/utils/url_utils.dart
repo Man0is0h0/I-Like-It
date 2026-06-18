@@ -1,5 +1,43 @@
+import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
+
 class UrlUtils {
-  /// Extract domain name from URL
+  static Future<void> launchBrowserOrApp(BuildContext context, String url) async {
+    final uri = Uri.parse(url);
+    try {
+      // Try to open with the dedicated app if installed
+      final launched = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
+      if (!launched) {
+        // If external app launch returns false, try Chrome specifically
+        final chromeUri = Uri.parse('googlechrome://navigate?url=$url');
+        if (await canLaunchUrl(chromeUri)) {
+          await launchUrl(chromeUri, mode: LaunchMode.externalApplication);
+        } else {
+          // Final fallback to default browser
+          await launchUrl(uri, mode: LaunchMode.platformDefault);
+        }
+      }
+    } catch (e) {
+      try {
+        final chromeUri = Uri.parse('googlechrome://navigate?url=$url');
+        if (await canLaunchUrl(chromeUri)) {
+          await launchUrl(chromeUri, mode: LaunchMode.externalApplication);
+        } else {
+          await launchUrl(uri, mode: LaunchMode.platformDefault);
+        }
+      } catch (e2) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Could not open link')),
+          );
+        }
+      }
+    }
+  }
+
   static String getDomainFromUrl(String url) {
     try {
       final uri = Uri.parse(url);

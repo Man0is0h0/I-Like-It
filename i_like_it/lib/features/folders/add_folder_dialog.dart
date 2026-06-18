@@ -67,21 +67,21 @@ class _AddFolderDialogState extends State<AddFolderDialog> {
 
     setState(() => _isSaving = true);
 
-    final folder = Folder(name: name, createdAt: DateTime.now(), icon: _selectedIcon);
-    final id = await db.insert('folders', folder.toMap());
+    final folderData = {
+      'name': name,
+      'icon': _selectedIcon,
+    };
+    final id = await DatabaseHelper.instance.insertFolder(folderData);
 
     // Create a new Folder object with the ID from the database
     // Handle both int and String IDs (Supabase returns int for serial, String for UUID)
     final dynamic rawId = id; 
     
     final createdFolder = Folder(
-      id: rawId is int ? rawId : null, // ID in model is nullable int, but if UUID it might be null here if model doesn't support String. 
-      // Actually, looking at folder_model.dart... it expects int?.
-      // If DB uses UUIDs, Folder model is broken too. 
-      // But let's assume rawId works for classification at least.
-      name: folder.name,
-      createdAt: folder.createdAt,
-      icon: folder.icon,
+      id: rawId is int ? rawId : null, 
+      name: name,
+      createdAt: DateTime.now(),
+      icon: _selectedIcon,
     );
 
     // Trigger AI Classification (Fire & Forget)

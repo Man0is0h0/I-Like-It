@@ -10,11 +10,13 @@ class FolderSuggester {
     required String linkContent,
     required List<Folder> existingFolders,
   }) async {
-    // Try to get AI suggestions for videos
+    // Try to get AI suggestions for videos and links
     final aiSuggestions = await AIVideoAnalyzer.analyzeVideoAndSuggestFolders(
       videoUrl: linkUrl,
       videoTitle: linkTitle,
       videoDescription: linkDescription,
+      content: linkContent,
+      existingFolders: existingFolders.map((f) => f.name).toList(),
     );
 
     // Extract keywords from title, description, and actual content
@@ -23,10 +25,31 @@ class FolderSuggester {
 
     // Score existing folders based on keyword match
     final scoredFolders = _scoreFolders(existingFolders, keywords, domain);
+
+    // See if the AI recommended an existing folder
+    final aiExisting = aiSuggestions.where((s) => s.startsWith('EXISTING:')).toList();
+    final newSuggestions = aiSuggestions.where((s) => !s.startsWith('EXISTING:')).toList();
+
+    if (aiExisting.isNotEmpty) {
+      final aiSuggestedName = aiExisting.first.replaceFirst('EXISTING:', '');
+      // Find this folder in existingFolders
+      try {
+        final matchedFolder = existingFolders.firstWhere((f) => f.name.toLowerCase() == aiSuggestedName.toLowerCase());
+        // If not already in scoredFolders, add it to the top
+        if (!scoredFolders.any((sf) => sf.folder.id == matchedFolder.id)) {
+           scoredFolders.insert(0, ScoredFolder(folder: matchedFolder, score: 10.0, matchType: 'AI Match'));
+        } else {
+           // If it is, bump it to the top
+           final existingSf = scoredFolders.firstWhere((sf) => sf.folder.id == matchedFolder.id);
+           scoredFolders.remove(existingSf);
+           scoredFolders.insert(0, ScoredFolder(folder: matchedFolder, score: 10.0, matchType: 'AI Match'));
+        }
+      } catch (_) {}
+    }
     
     // Use AI suggestion if available, otherwise generate from keywords
-    final suggestedName = aiSuggestions.isNotEmpty 
-        ? aiSuggestions.first 
+    final suggestedName = newSuggestions.isNotEmpty 
+        ? newSuggestions.first 
         : _generateFolderName(keywords, domain);
 
     return SuggestionResult(
@@ -34,7 +57,7 @@ class FolderSuggester {
       suggestedNewFolderName: suggestedName,
       keywords: keywords,
       domain: domain,
-      aiSuggestions: aiSuggestions,
+      aiSuggestions: newSuggestions,
     );
   }
 
@@ -116,7 +139,15 @@ class FolderSuggester {
   static String _extractDomain(String url) {
     try {
       final uri = Uri.parse(url);
-      final host = uri.host.replaceAll('www.', '');
+      final host = uri.host.replaceAll('www.', '').toLowerCase();
+      
+      // Handle known shortened domains
+      if (host == 'pin.it') return 'pinterest';
+      if (host == 'youtu.be') return 'youtube';
+      if (host == 'fb.watch' || host == 'fb.me') return 'facebook';
+      if (host == 't.co') return 'twitter';
+      if (host == 'lnkd.in') return 'linkedin';
+      
       // Get domain name (remove TLD)
       final parts = host.split('.');
       return parts.isNotEmpty ? parts[0] : '';
@@ -153,7 +184,7 @@ class FolderSuggester {
 
       // Check for domain match
       if (domain.isNotEmpty && folderNameLower.contains(domain)) {
-        score += 1.0;
+        score += 2.0;
       }
 
       // Reduce score if only 1 short keyword matched (likely coincidental)

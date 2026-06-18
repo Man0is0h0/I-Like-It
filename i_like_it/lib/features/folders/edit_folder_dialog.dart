@@ -64,12 +64,11 @@ class _EditFolderDialogState extends State<EditFolderDialog> {
 
     setState(() => _isSaving = true);
 
-    await db.update(
-      'folders',
-      {'name': name, 'icon': _selectedIcon},
-      where: 'id = ?',
-      whereArgs: [widget.folder.id],
-    );
+    await DatabaseHelper.instance.updateFolder({
+      'id': widget.folder.id,
+      'name': name,
+      'icon': _selectedIcon,
+    });
 
     if (mounted) Navigator.pop(context, true);
   }

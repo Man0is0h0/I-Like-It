@@ -25,14 +25,40 @@ class ShareSaveScreen extends StatefulWidget {
 class _ShareSaveScreenState extends State<ShareSaveScreen> {
   List<Folder> folders = [];
   bool loading = true;
+  late final String cleanUrl;
 
   @override
   void initState() {
     super.initState();
+    cleanUrl = MetadataExtractor.extractCleanUrl(widget.sharedLink);
     _loadFoldersAndShowSuggestions();
   }
 
   Future<void> _loadFoldersAndShowSuggestions() async {
+    // Check if we extracted a valid URL (should start with http/https)
+    if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
+      print('[SHARE_SCREEN] No valid URL found in shared text: $cleanUrl');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No valid link found in shared text'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+      
+      // Wait for the snackbar to be readable, then close the app
+      await Future.delayed(const Duration(seconds: 2));
+      
+      const platform = MethodChannel('shared_link');
+      try {
+        await platform.invokeMethod('closeApp');
+      } catch (e) {
+        if (mounted) Navigator.pop(context);
+      }
+      return;
+    }
+
     print('[SHARE_SCREEN] Loading folders...');
     final db = await DatabaseHelper.instance.database;
     final result = await db.query('folders', orderBy: 'created_at DESC');
@@ -52,10 +78,25 @@ class _ShareSaveScreenState extends State<ShareSaveScreen> {
     print('[SHARE_SCREEN] Showing suggestion dialog');
     try {
       print('[SHARE_SCREEN] Extracting metadata and content...');
-      final metadata = await MetadataExtractor.extractMetadata(widget.sharedLink);
-      final title = metadata['title'] ?? '';
+      final metadata = await MetadataExtractor.extractMetadata(cleanUrl);
+      String title = metadata['title'] ?? '';
       final description = metadata['description'] ?? '';
       final content = metadata['content'] ?? '';
+      final imageUrl = metadata['image'] ?? '';
+
+      // Extract extra text from sharedLink (often contains the real title!)
+      String sharedText = widget.sharedLink.replaceAll(cleanUrl, '').trim();
+      if (sharedText.isNotEmpty) {
+        // Clean up common share prefixes
+        sharedText = sharedText.replaceAll(RegExp(r'^Check this out:\s*', caseSensitive: false), '');
+        
+        // Use shared text if it's substantial, or if the extracted title is generic
+        if (sharedText.length > 3) {
+          title = sharedText;
+        } else if (title.isEmpty || title.contains('Link') || title == 'YouTube Video') {
+          title = sharedText.isNotEmpty ? sharedText : title;
+        }
+      }
 
       if (!mounted) {
         print('[SHARE_SCREEN] Widget not mounted after metadata extraction');
@@ -68,7 +109,7 @@ class _ShareSaveScreenState extends State<ShareSaveScreen> {
         context: context,
         barrierDismissible: false,
         builder: (_) => FolderSuggestionDialog(
-          linkUrl: widget.sharedLink,
+          linkUrl: cleanUrl,
           linkTitle: title,
           linkDescription: description,
           linkContent: content,
@@ -99,7 +140,7 @@ class _ShareSaveScreenState extends State<ShareSaveScreen> {
         barrierDismissible: false,
         builder: (_) => _EditLinkDialog(
           title: title,
-          url: widget.sharedLink,
+          url: cleanUrl,
         ),
       );
 
@@ -117,11 +158,12 @@ class _ShareSaveScreenState extends State<ShareSaveScreen> {
       }
 
       await _saveLinkToFolder(
-        widget.sharedLink, 
+        cleanUrl, 
         selectedFolder, 
         result['title'] ?? title, 
         description,
         result['note'] ?? '',
+        imageUrl,
       );
     } catch (e, st) {
       print('[SHARE_SCREEN] Error in suggestion: $e');
@@ -171,25 +213,25 @@ class _ShareSaveScreenState extends State<ShareSaveScreen> {
                                 style: AppTheme.bodyLarge,
                               ),
                               onTap: () async {
-                                final navigator = Navigator.of(context);
                                 // Show edit dialog even for fallback
                                 final result = await showDialog<Map<String, String>>(
                                   context: context,
                                   barrierDismissible: false,
                                   builder: (_) => _EditLinkDialog(
-                                    title: widget.sharedLink,
-                                    url: widget.sharedLink,
+                                    title: cleanUrl,
+                                    url: cleanUrl,
                                   ),
                                 );
 
                                 if (result == null) return;
 
                                 await _saveLinkToFolder(
-                                  widget.sharedLink,
+                                  cleanUrl,
                                   folder,
-                                  result['title'] ?? widget.sharedLink,
+                                  result['title'] ?? cleanUrl,
                                   '',
                                   result['note'] ?? '',
+                                  '',
                                 );
                                 // Removed redundant pops as _saveLinkToFolder handles closing the app
                               },
@@ -211,6 +253,7 @@ class _ShareSaveScreenState extends State<ShareSaveScreen> {
     String title,
     String description,
     String note,
+    String imageUrl,
   ) async {
     try {
       var normalizedUrl = _normalizeUrlForComparison(url);
@@ -266,13 +309,13 @@ class _ShareSaveScreenState extends State<ShareSaveScreen> {
         }
       }
 
-      await db.insert('links', {
+      await DatabaseHelper.instance.insertLink({
         'folder_id': folder.id,
         'url': url,
         'title': displayTitle,
         'domain': _extractDomain(url),
+        'image_url': imageUrl.isNotEmpty ? imageUrl : null,
         'notes': note,
-        'created_at': DateTime.now().toIso8601String(),
       });
 
       print('[SHARE_SCREEN] Saved link to folder ${folder.id}');

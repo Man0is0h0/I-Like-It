@@ -26,7 +26,48 @@ class DatabaseHelper {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, 'i_like_it.db');
 
-    return await openDatabase(path, version: 7, onCreate: _onCreate, onUpgrade: _onUpgrade);
+    final db = await openDatabase(path, version: 7, onCreate: _onCreate, onUpgrade: _onUpgrade);
+    await _sanitizeExistingLinks(db);
+    return db;
+  }
+
+  Future<void> _sanitizeExistingLinks(Database db) async {
+    try {
+      final List<Map<String, dynamic>> links = await db.query('links');
+      for (var link in links) {
+        final String rawUrl = link['url'] as String? ?? '';
+        final urlRegex = RegExp(
+          r'(https?:\/\/[^\s]+)',
+          caseSensitive: false,
+        );
+        final match = urlRegex.firstMatch(rawUrl);
+        if (match != null) {
+          String cleanUrl = match.group(1)!;
+          
+          while (cleanUrl.isNotEmpty && 
+                 (cleanUrl.endsWith('.') || 
+                  cleanUrl.endsWith(',') || 
+                  cleanUrl.endsWith('!') || 
+                  cleanUrl.endsWith('?') || 
+                  cleanUrl.endsWith(')') || 
+                  cleanUrl.endsWith(']'))) {
+            cleanUrl = cleanUrl.substring(0, cleanUrl.length - 1);
+          }
+          
+          if (cleanUrl != rawUrl) {
+            print('[DB_SANITY] Cleaning raw URL in DB: "$rawUrl" -> "$cleanUrl"');
+            await db.update(
+              'links',
+              {'url': cleanUrl},
+              where: 'id = ?',
+              whereArgs: [link['id']],
+            );
+          }
+        }
+      }
+    } catch (e) {
+      print('[DB_SANITY] Error sanitizing existing links: $e');
+    }
   }
 
   Future<void> _onCreate(Database db, int version) async {
@@ -249,7 +290,14 @@ class DatabaseHelper {
 
   Future<List<Map<String, dynamic>>> getFolders() async {
     final db = await database;
-    return await db.query('folders', where: 'is_deleted = 0', orderBy: 'created_at DESC');
+    return await db.rawQuery('''
+      SELECT f.*, COUNT(l.id) as item_count 
+      FROM folders f 
+      LEFT JOIN links l ON f.id = l.folder_id AND l.is_deleted = 0 
+      WHERE f.is_deleted = 0 
+      GROUP BY f.id 
+      ORDER BY f.created_at DESC
+    ''');
   }
 
   Future<void> updateFolderSystemCategory(int id, String category) async {
@@ -309,6 +357,25 @@ class DatabaseHelper {
       'links', 
       where: 'folder_id = ? AND is_deleted = 0', 
       whereArgs: [folderId], 
+      orderBy: 'created_at DESC'
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> getRecentLinks({int limit = 3}) async {
+    final db = await database;
+    return await db.query(
+      'links', 
+      where: 'is_deleted = 0', 
+      orderBy: 'created_at DESC',
+      limit: limit
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> getAllLinks() async {
+    final db = await database;
+    return await db.query(
+      'links', 
+      where: 'is_deleted = 0', 
       orderBy: 'created_at DESC'
     );
   }

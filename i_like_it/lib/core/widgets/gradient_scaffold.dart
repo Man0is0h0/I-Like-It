@@ -5,6 +5,7 @@ class GradientScaffold extends StatelessWidget {
   final Widget body;
   final PreferredSizeWidget? appBar;
   final Widget? floatingActionButton;
+  final FloatingActionButtonLocation? floatingActionButtonLocation;
   final Widget? bottomNavigationBar;
   final bool extendBodyBehindAppBar;
 
@@ -13,6 +14,7 @@ class GradientScaffold extends StatelessWidget {
     required this.body,
     this.appBar,
     this.floatingActionButton,
+    this.floatingActionButtonLocation,
     this.bottomNavigationBar,
     this.extendBodyBehindAppBar = false,
   });
@@ -23,6 +25,7 @@ class GradientScaffold extends StatelessWidget {
       extendBodyBehindAppBar: extendBodyBehindAppBar,
       appBar: appBar,
       floatingActionButton: floatingActionButton,
+      floatingActionButtonLocation: floatingActionButtonLocation,
       bottomNavigationBar: bottomNavigationBar,
       body: GradientBackground(
         child: SafeArea(

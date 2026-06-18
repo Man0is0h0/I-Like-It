@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/models/link_model.dart';
 import '../../core/utils/url_utils.dart';
 import '../../theme/app_theme.dart';
-import '../../core/widgets/glass_container.dart'; // New
+import '../../core/widgets/glass_container.dart';
 
 class LinkCard extends StatelessWidget {
   final LinkItem link;
@@ -23,10 +23,21 @@ class LinkCard extends StatelessWidget {
     final domain = UrlUtils.getDomainFromUrl(link.url);
     final title = link.title.isNotEmpty ? link.title : domain;
     final timeAgo = UrlUtils.formatTimestamp(link.createdAt);
+    
+    // Determine type (basic heuristic)
+    IconData typeIcon = Icons.link;
+    String typeText = 'Link';
+    if (link.imageUrl != null && link.imageUrl!.isNotEmpty && domain.isEmpty) {
+      typeIcon = Icons.image;
+      typeText = 'Image';
+    } else if (link.notes != null && link.notes!.isNotEmpty && domain.isEmpty) {
+      typeIcon = Icons.article;
+      typeText = 'Note';
+    }
 
     return GlassContainer(
       padding: EdgeInsets.zero,
-      enableBlur: false, // Optimize performance
+      enableBlur: false,
       borderRadius: BorderRadius.circular(16),
       child: Material(
         color: Colors.transparent,
@@ -36,12 +47,12 @@ class LinkCard extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.all(12),
             child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // Icon / Favicon placeholder
+                // Larger Thumbnail (Mockup style)
                 Container(
-                  width: 48,
-                  height: 48,
+                  width: 100,
+                  height: 72,
                   decoration: BoxDecoration(
                     color: _getDomainColor(domain).withOpacity(0.15),
                     borderRadius: BorderRadius.circular(12),
@@ -62,63 +73,37 @@ class LinkCard extends StatelessWidget {
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
                         title,
-                        maxLines: 2,
+                        maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodyLarge?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          height: 1.3,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 8),
                       Row(
                         children: [
-                          Icon(Icons.link, size: 12, color: colorScheme.onSurfaceVariant),
+                          Icon(typeIcon, size: 14, color: colorScheme.primary),
                           const SizedBox(width: 4),
-                          Expanded(
-                            child: Text(
-                              domain,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
                           Text(
-                            timeAgo,
+                            typeText,
                             style: theme.textTheme.bodySmall?.copyWith(
-                              color: colorScheme.onSurfaceVariant.withOpacity(0.7),
-                              fontSize: 10,
+                              color: colorScheme.primary,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         ],
                       ),
-                      
-                      // Notes (if present)
-                      if (link.notes != null && link.notes!.isNotEmpty) ...[
-                        const SizedBox(height: 10),
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.surface.withOpacity(0.3),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: colorScheme.outline.withOpacity(0.1)),
-                          ),
-                          child: Text(
-                            link.notes!,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: colorScheme.onSurfaceVariant,
-                            ),
-                          ),
+                      const SizedBox(height: 4),
+                      Text(
+                        timeAgo,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant.withOpacity(0.7),
                         ),
-                      ],
+                      ),
                     ],
                   ),
                 ),
@@ -137,7 +122,7 @@ class LinkCard extends StatelessWidget {
         domain.isNotEmpty ? domain[0].toUpperCase() : '?',
         style: TextStyle(
           color: _getDomainColor(domain),
-          fontSize: 20,
+          fontSize: 24,
           fontWeight: FontWeight.bold,
         ),
       ),
@@ -148,15 +133,16 @@ class LinkCard extends StatelessWidget {
     if (domain.isEmpty) return Colors.grey;
     final colors = [
       AppTheme.primaryColor,
-      Color(0xFF059669), // Emerald
-      Color(0xFFD97706), // Amber
-      Color(0xFFDC2626), // Red
-      Color(0xFF7C3AED), // Violet
-      Color(0xFFDB2777), // Pink
-      Color(0xFF2563EB), // Blue
+      const Color(0xFF059669), // Emerald
+      const Color(0xFFD97706), // Amber
+      const Color(0xFFDC2626), // Red
+      const Color(0xFF7C3AED), // Violet
+      const Color(0xFFDB2777), // Pink
+      const Color(0xFF2563EB), // Blue
     ];
     
     final hash = domain.codeUnits.fold<int>(0, (prev, code) => prev + code);
     return colors[hash % colors.length];
   }
 }
+

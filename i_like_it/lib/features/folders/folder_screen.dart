@@ -1,4 +1,7 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'all_folders_screen.dart';
+import 'folder_card.dart';
 import 'dart:ui'; // For BackdropFilter
 import '../../core/database/database_helper.dart';
 import '../../core/models/folder_model.dart';
@@ -19,6 +22,12 @@ import '../../core/auth/user_session_manager.dart';
 import '../../core/theme/theme_manager.dart';
 import '../admin/admin_screen.dart';
 import '../onboarding/initial_setup_screen.dart';
+import '../../core/models/link_model.dart';
+import '../links/link_card.dart';
+import 'all_saves_screen.dart';
+import 'package:share_plus/share_plus.dart';
+import '../../core/utils/url_utils.dart';
+import '../links/edit_link_dialog.dart';
 
 class FolderScreen extends StatefulWidget {
   final String? sharedLink;
@@ -31,8 +40,9 @@ class FolderScreen extends StatefulWidget {
 
 class _FolderScreenState extends State<FolderScreen> with WidgetsBindingObserver {
   List<Folder> folders = [];
+  List<LinkItem> recentLinks = [];
   bool _isAdmin = false;
-  bool _isLoading = true; // Added loading state
+  bool _isLoading = false; // Added loading state
   StreamSubscription? _syncSubscription;
 
   @override
@@ -129,7 +139,7 @@ class _FolderScreenState extends State<FolderScreen> with WidgetsBindingObserver
   /// Load folders first, then show picker if app opened via share
   Future<void> _init() async {
     print('[FOLDER_SCREEN] Initializing, sharedLink: ${widget.sharedLink}');
-    await _loadFolders(); // Default is non-silent (shows loading)
+    await _loadFolders(silent: true); // Default is non-silent (shows loading)
 
     if (!mounted) {
       print('[FOLDER_SCREEN] Not mounted after loading folders');
@@ -140,7 +150,8 @@ class _FolderScreenState extends State<FolderScreen> with WidgetsBindingObserver
       print('[FOLDER_SCREEN] Shared link detected, scheduling folder picker');
       WidgetsBinding.instance.addPostFrameCallback((_) {
         print('[FOLDER_SCREEN] Post frame callback - showing folder picker');
-        _showFolderPicker(widget.sharedLink!);
+        final cleanUrl = MetadataExtractor.extractCleanUrl(widget.sharedLink!);
+        _showFolderPicker(cleanUrl);
       });
     }
   }
@@ -157,8 +168,6 @@ class _FolderScreenState extends State<FolderScreen> with WidgetsBindingObserver
     // Duration for the welcome animation to complete comfortably
     final minDuration = silent ? Duration.zero : const Duration(milliseconds: 3500);
 
-    final result = await DatabaseHelper.instance.getFolders();
-
     // Calculate remaining time to wait
     if (!silent) {
       final elapsed = DateTime.now().difference(startTime);
@@ -167,10 +176,20 @@ class _FolderScreenState extends State<FolderScreen> with WidgetsBindingObserver
       }
     }
 
+    // Query folders after the delay to ensure we fetch the most recent sync results
+    final result = await DatabaseHelper.instance.getFolders();
+    final linkResult = await DatabaseHelper.instance.getRecentLinks(limit: 3);
+
     if (!mounted) return;
 
     setState(() {
       folders = result.map((e) => Folder.fromMap(e)).toList();
+      folders.sort((a, b) {
+        int cmp = b.itemCount.compareTo(a.itemCount);
+        if (cmp == 0) return b.createdAt.compareTo(a.createdAt);
+        return cmp;
+      });
+      recentLinks = linkResult.map((e) => LinkItem.fromMap(e)).toList();
       // Only clear loading state if this was a blocking load
       // This prevents background silent refreshes (e.g. sync) from interrupting the welcome animation
       if (!silent) {
@@ -336,8 +355,6 @@ class _FolderScreenState extends State<FolderScreen> with WidgetsBindingObserver
     String description,
   ) async {
     try {
-      final db = await DatabaseHelper.instance.database;
-      
       // Use title if available, otherwise use domain
       String displayTitle = title;
       if (displayTitle.isEmpty) {
@@ -349,12 +366,11 @@ class _FolderScreenState extends State<FolderScreen> with WidgetsBindingObserver
         }
       }
 
-      await db.insert('links', {
+      await DatabaseHelper.instance.insertLink({
         'folder_id': folder.id,
         'url': url,
         'title': displayTitle,
         'domain': _extractDomain(url),
-        'created_at': DateTime.now().toIso8601String(),
       });
 
       if (!mounted) return;
@@ -579,16 +595,6 @@ class _FolderScreenState extends State<FolderScreen> with WidgetsBindingObserver
     }
 
     return GradientScaffold(
-      floatingActionButton: folders.isEmpty
-          ? null
-          : FloatingActionButton(
-              onPressed: () async {
-                await _showAddFolderDialog();
-              },
-              backgroundColor: colorScheme.primary,
-              elevation: 4,
-              child: const Icon(Icons.add_rounded, size: 28),
-            ),
       body: RefreshIndicator(
         onRefresh: () async {
           await SyncManager.instance.sync(); // Force a cloud sync
@@ -598,47 +604,186 @@ class _FolderScreenState extends State<FolderScreen> with WidgetsBindingObserver
         child: CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
-            SliverAppBar(
-              floating: true,
-              pinned: true,
-              expandedHeight: 120.0,
-              backgroundColor: Colors.transparent, // Transparent for gradient
-              surfaceTintColor: Colors.transparent,
-              flexibleSpace: ClipRRect(
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                  child: FlexibleSpaceBar(
-                    background: Container(color: theme.scaffoldBackgroundColor.withOpacity(0.3)), // Subtle tint
-                    titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
-                    title: Text(
-                      'My Collections',
-                      style: TextStyle(
-                        color: colorScheme.onSurface,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 24, 
-                        letterSpacing: -0.5,
+            // Header with Logo and Profile
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.only(top: 24, left: 16, right: 16, bottom: 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Image.asset(
+                      isDark ? 'assets/native_splash_transparent.png' : 'assets/light_logo_transparent.png',
+                      height: 54,
+                    ),
+                    GestureDetector(
+                      key: _menuButtonKey,
+                      onTap: _showMainMenu,
+                      child: CircleAvatar(
+                        radius: 22,
+                        backgroundColor: colorScheme.primary.withOpacity(0.15),
+                        child: Icon(Icons.person, color: colorScheme.primary, size: 24),
                       ),
                     ),
-                    centerTitle: false,
+                  ],
+                ),
+              ),
+            ),
+            
+            // Search Bar
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: GestureDetector(
+                  onTap: () => showSearch(context: context, delegate: GlobalSearchDelegate()),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    decoration: BoxDecoration(
+                      color: theme.scaffoldBackgroundColor,
+                      borderRadius: BorderRadius.circular(30),
+                      border: Border.all(color: colorScheme.outline.withOpacity(0.2)),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.search, color: colorScheme.onSurfaceVariant),
+                        const SizedBox(width: 12),
+                        Text('Search your saved items...', 
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: colorScheme.onSurfaceVariant
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
-              actions: [
-                IconButton(
-                  icon: Icon(Icons.search, color: colorScheme.onSurfaceVariant),
-                  onPressed: () => showSearch(
-                    context: context,
-                    delegate: GlobalSearchDelegate(),
+            ),
+
+            // Recent Saves Section
+            if (recentLinks.isNotEmpty) ...[
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Recent Saves', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.push(context, MaterialPageRoute(builder: (_) => const AllSavesScreen()));
+                        },
+                        child: Text('View all', style: TextStyle(color: colorScheme.primary)),
+                        style: TextButton.styleFrom(
+                          minimumSize: Size.zero,
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                IconButton(
-                  key: _menuButtonKey,
-                  icon: Icon(Icons.more_vert, color: colorScheme.onSurfaceVariant),
-                  onPressed: _showMainMenu,
-                  tooltip: 'Options',
+              ),
+              SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) {
+                    final link = recentLinks[index];
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                      child: LinkCard(
+                        link: link,
+                        onTap: () {
+                          String finalUrl = MetadataExtractor.extractCleanUrl(link.url);
+                          if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://')) {
+                            finalUrl = 'https://$finalUrl';
+                          }
+                          UrlUtils.launchBrowserOrApp(context, finalUrl);
+                        },
+                        trailing: PopupMenuButton(
+                          icon: Icon(Icons.more_vert, color: colorScheme.onSurfaceVariant, size: 20),
+                          padding: EdgeInsets.zero,
+                          itemBuilder: (context) => [
+                            PopupMenuItem(
+                              value: 'share',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.share, size: 18, color: colorScheme.primary),
+                                  const SizedBox(width: 8),
+                                  Text('Share', style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.primary)),
+                                ],
+                              ),
+                            ),
+                            PopupMenuItem(
+                              value: 'edit',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.edit_outlined, size: 18, color: colorScheme.onSurface),
+                                  const SizedBox(width: 8),
+                                  Text('Edit', style: theme.textTheme.bodyMedium),
+                                ],
+                              ),
+                            ),
+                            PopupMenuItem(
+                              value: 'delete',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.delete_outline, size: 18, color: colorScheme.error),
+                                  const SizedBox(width: 8),
+                                  Text('Delete', style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.error)),
+                                ],
+                              ),
+                            ),
+                          ],
+                          onSelected: (value) async {
+                            if (value == 'share') {
+                              Share.share(link.url);
+                            } else if (value == 'edit') {
+                              final edited = await showDialog<bool>(
+                                context: context,
+                                builder: (_) => EditLinkDialog(link: link),
+                              );
+                              if (edited == true) {
+                                _loadFolders(silent: true);
+                                SyncManager.instance.sync();
+                              }
+                            } else if (value == 'delete') {
+                              await DatabaseHelper.instance.deleteLink(link.id!);
+                              _loadFolders(silent: true);
+                              SyncManager.instance.sync();
+                            }
+                          },
+                        ),
+                      ),
+                    );
+                  },
+                  childCount: recentLinks.length,
                 ),
-                const SizedBox(width: 8),
-              ],
+              ),
+            ],
+
+            // Folders Section
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Folders', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const AllFoldersScreen()),
+                        ).then((_) => _loadFolders(silent: true));
+                      },
+                      child: Text('View all', style: TextStyle(color: colorScheme.primary)),
+                      style: TextButton.styleFrom(
+                        minimumSize: Size.zero,
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
             if (folders.isEmpty)
              SliverFillRemaining(
@@ -687,122 +832,41 @@ class _FolderScreenState extends State<FolderScreen> with WidgetsBindingObserver
               )
             else
               SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                sliver: SliverList(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                sliver: SliverGrid(
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                    childAspectRatio: 2.3, // Match mockup proportion
+                  ),
                   delegate: SliverChildBuilderDelegate(
                     (context, index) {
                       final folder = folders[index];
-                      // Use GlassContainer for items
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: GlassContainer(
-                          padding: EdgeInsets.zero,
-                          enableBlur: false, // Optimize performance
-                          borderRadius: BorderRadius.circular(16),
-                          child: Material(
-                            color: Colors.transparent,
-                            child: InkWell(
-                              borderRadius: BorderRadius.circular(16),
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => LinkScreen(
-                                      folderId: folder.id!,
-                                      folderName: folder.name,
-                                    ),
-                                  ),
-                                );
-                              },
-                              child: Padding(
-                                padding: const EdgeInsets.all(4),
-                                child: ListTile(
-                                  contentPadding: const EdgeInsets.symmetric(
-                                      horizontal: 12, vertical: 6),
-                                  leading: Container(
-                                    padding: const EdgeInsets.all(12),
-                                    decoration: BoxDecoration(
-                                      color: colorScheme.primary.withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Icon(
-                                      _parseIcon(folder.icon),
-                                      color: colorScheme.primary,
-                                      size: 24,
-                                    ),
-                                  ),
-                                  title: Text(
-                                    folder.name,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: theme.textTheme.bodyLarge?.copyWith(
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  trailing: PopupMenuButton(
-                                    icon: Icon(Icons.more_horiz,
-                                        color: colorScheme.onSurfaceVariant),
-                                    padding: EdgeInsets.zero,
-                                    itemBuilder: (context) => [
-                                      PopupMenuItem(
-                                        value: 'edit',
-                                        child: Row(
-                                          children: [
-                                            Icon(Icons.edit_outlined,
-                                                size: 20, color: colorScheme.onSurfaceVariant),
-                                            const SizedBox(width: 12),
-                                            Text('Rename',
-                                                style: theme.textTheme.bodyMedium),
-                                          ],
-                                        ),
-                                      ),
-                                      PopupMenuItem(
-                                        value: 'delete',
-                                        child: Row(
-                                          children: [
-                                            Icon(Icons.delete_outline,
-                                                size: 20, color: colorScheme.error),
-                                            const SizedBox(width: 12),
-                                            Text('Delete',
-                                                style: theme.textTheme.bodyMedium?.copyWith(
-                                                  color: colorScheme.error,
-                                                )),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                    onSelected: (value) async {
-                                      if (value == 'edit') {
-                                        final edited = await showDialog<bool>(
-                                          context: context,
-                                          builder: (_) =>
-                                              EditFolderDialog(folder: folder),
-                                        );
-                                        if (edited == true) {
-                                          _loadFolders(silent: true);
-                                          SyncManager.instance.sync();
-                                        }
-                                      } else if (value == 'delete') {
-                                        await _deleteFolder(folder);
-                                        SyncManager.instance.sync();
-                                      }
-                                    },
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
+                      return FolderCard(
+                        folder: folder,
+                        onRefresh: () => _loadFolders(silent: true),
                       );
                     },
-                    childCount: folders.length,
+                    childCount: math.min(4, folders.length),
                   ),
                 ),
               ),
-            // Extra padding for FAB
-            const SliverToBoxAdapter(child: SizedBox(height: 80)),
+              
+            // Extra padding at bottom for FAB
+            const SliverToBoxAdapter(child: SizedBox(height: 100)),
           ],
         ),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          await _showAddFolderDialog();
+        },
+        backgroundColor: colorScheme.primary,
+        elevation: 6,
+        shape: const CircleBorder(),
+        child: const Icon(Icons.add_rounded, size: 32, color: Colors.white),
       ),
     );
   }

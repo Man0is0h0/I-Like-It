@@ -54,6 +54,8 @@ dependencies:
   google_generative_ai: ^0.2.0
   encrypt: ^5.0.3
   confetti: ^0.8.0
+  flutter_native_splash: ^2.4.0
+
 
 dev_dependencies:
   flutter_test:
@@ -65,7 +67,6 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
-  flutter_native_splash: ^2.4.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -81,6 +82,12 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - .env
+    - assets/flutter_splash.png
+    - assets/native_splash.jpeg
+    - assets/native_splash_transparent.png
+    - assets/light_logo.jpeg
+    - assets/light_logo_transparent.png
+    - assets/splash_logo.png
   #   - images/a_dot_burr.jpeg
   #   - images/a_dot_ham.jpeg
 

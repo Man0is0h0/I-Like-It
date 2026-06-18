@@ -44,22 +44,23 @@ class _EditLinkDialogState extends State<EditLinkDialog> {
 
     setState(() => _isSaving = true);
 
-    final db = await DatabaseHelper.instance.database;
-    await db.update(
-      'links',
-      {
-        'title': title,
-        'notes': notes.isEmpty ? null : notes,
-      },
-      where: 'id = ?',
-      whereArgs: [widget.link.id],
-    );
+    await DatabaseHelper.instance.updateLink({
+      'id': widget.link.id,
+      'title': title,
+      'notes': notes.isEmpty ? null : notes,
+    });
 
     if (mounted) Navigator.pop(context, true);
   }
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final inputStyle = TextStyle(
+      color: isDark ? Colors.white : Colors.black,
+      fontSize: 14,
+    );
+
     return AlertDialog(
       title: const Text('Edit Link'),
       content: SingleChildScrollView(
@@ -69,7 +70,7 @@ class _EditLinkDialogState extends State<EditLinkDialog> {
           children: [
             Text(
               'Title',
-              style: AppTheme.bodyMedium.copyWith(
+              style: (Theme.of(context).textTheme.bodyMedium ?? AppTheme.bodyMedium).copyWith(
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -77,7 +78,7 @@ class _EditLinkDialogState extends State<EditLinkDialog> {
             TextField(
               controller: _titleController,
               autofocus: true,
-              style: AppTheme.bodyMedium,
+              style: inputStyle,
               decoration: InputDecoration(
                 hintText: 'Link title',
                 border: OutlineInputBorder(
@@ -104,7 +105,7 @@ class _EditLinkDialogState extends State<EditLinkDialog> {
             const SizedBox(height: 16),
             Text(
               'Notes',
-              style: AppTheme.bodyMedium.copyWith(
+              style: (Theme.of(context).textTheme.bodyMedium ?? AppTheme.bodyMedium).copyWith(
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -112,7 +113,7 @@ class _EditLinkDialogState extends State<EditLinkDialog> {
             TextField(
               controller: _notesController,
               maxLines: 3,
-              style: AppTheme.bodyMedium,
+              style: inputStyle,
               decoration: InputDecoration(
                 hintText: 'Add notes... (optional)',
                 border: OutlineInputBorder(

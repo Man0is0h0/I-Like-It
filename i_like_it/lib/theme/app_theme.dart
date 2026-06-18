@@ -1,31 +1,31 @@
 import 'package:flutter/material.dart';
 
 class AppTheme {
-  // Light Mode Palette
-  static const Color primaryColor = Color(0xFF4F46E5); // Indigo 600
-  static const Color primaryDark = Color(0xFF3730A3);
-  static const Color primaryLight = Color(0xFFE0E7FF);
+  // Light Mode Palette (from user palette)
+  static const Color primaryColor = Color(0xFF017D3C); // Turf Green
+  static const Color primaryDark = Color(0xFF03843B); // Sea Green
+  static const Color primaryLight = Color(0xFFFBFCFC);
   
   static const Color successColor = Color(0xFF059669); // Emerald 600
   static const Color warningColor = Color(0xFFD97706); // Amber 600
   static const Color errorColor = Color(0xFFDC2626); // Red 600
   
-  static const Color backgroundColor = Color(0xFFF3F4F6); // Gray 100
-  static const Color surfaceColor = Color(0xFFFFFFFF);
-  static const Color borderColor = Color(0xFFE5E7EB); // Gray 200
+  static const Color backgroundColor = Color(0xFFFBFCFC); // White
+  static const Color surfaceColor = Color(0xFFFFFFFF); // White 2
+  static const Color borderColor = Color(0x263B4247); // Iron Grey with opacity
   
-  static const Color textPrimary = Color(0xFF111827); // Gray 900
-  static const Color textSecondary = Color(0xFF4B5563); // Gray 600
-  static const Color textLight = Color(0xFF9CA3AF); // Gray 400
+  static const Color textPrimary = Color(0xFF000000); // Solid Black
+  static const Color textSecondary = Color(0xFF000000); // Solid Black
+  static const Color textLight = Color(0xFF000000); // Solid Black
 
-  // Dark Mode Palette
-  static const Color _darkBackground = Color(0xFF111827); // Gray 900
-  static const Color _darkSurface = Color(0xFF1F2937); // Gray 800
-  static const Color _darkBorder = Color(0xFF374151); // Gray 700
-  static const Color _darkPrimary = Color(0xFF6366F1); // Indigo 500 (Brighter for dark mode)
-  static const Color _darkTextPrimary = Color(0xFFF9FAFB); // Gray 50
-  static const Color _darkTextSecondary = Color(0xFFD1D5DB); // Gray 300
-  static const Color _darkTextLight = Color(0xFF9CA3AF); // Gray 400
+  // Dark Mode Palette (from user palette)
+  static const Color _darkBackground = Color(0xFF030804); // Black
+  static const Color _darkSurface = Color(0xFF0A0B0B); // Onyx
+  static const Color _darkBorder = Color(0x3326973C); // Forest Green with opacity
+  static const Color _darkPrimary = Color(0xFF26973C); // Forest Green
+  static const Color _darkTextPrimary = Color(0xFFFFFFFF); // Solid White
+  static const Color _darkTextSecondary = Color(0xFFFFFFFF); // Solid White
+  static const Color _darkTextLight = Color(0xFFFFFFFF); // Solid White
 
   // --- Light Theme ---
   static ThemeData lightTheme = ThemeData(
@@ -82,7 +82,7 @@ class AppTheme {
         borderRadius: BorderRadius.circular(12),
         borderSide: const BorderSide(color: primaryColor, width: 1.5),
       ),
-      hintStyle: const TextStyle(color: textLight),
+      hintStyle: const TextStyle(color: Colors.grey),
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
@@ -188,7 +188,7 @@ class AppTheme {
         borderRadius: BorderRadius.circular(12),
         borderSide: const BorderSide(color: _darkPrimary, width: 1.5),
       ),
-      hintStyle: const TextStyle(color: _darkTextLight),
+      hintStyle: const TextStyle(color: Colors.grey),
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(

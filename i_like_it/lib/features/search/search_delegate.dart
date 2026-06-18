@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
+import '../../core/utils/metadata_extractor.dart';
+import '../../core/utils/url_utils.dart';
 import '../../core/database/database_helper.dart';
 import '../../core/models/folder_model.dart';
 import '../../core/models/link_model.dart';
@@ -194,35 +195,12 @@ class GlobalSearchDelegate extends SearchDelegate {
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
                     ),
-                    onTap: () async {
-                      // ... (Keep existing launch logic)
-                      String url = link.url;
+                    onTap: () {
+                      String url = MetadataExtractor.extractCleanUrl(link.url);
                       if (!url.startsWith('http://') && !url.startsWith('https://')) {
                         url = 'https://$url';
                       }
-                      
-                      final uri = Uri.parse(url);
-                      try {
-                        if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
-                           throw 'Could not launch $uri';
-                        }
-                      } catch (e) {
-                        try {
-                           if (await canLaunchUrl(uri)) {
-                             await launchUrl(uri);
-                           } else {
-                             if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Could not open link')));
-                             }
-                           }
-                        } catch (e2) {
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Error opening link')));
-                          }
-                        }
-                      }
+                      UrlUtils.launchBrowserOrApp(context, url);
                     },
                   ),
                 ),

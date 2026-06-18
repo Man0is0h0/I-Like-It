@@ -60,8 +60,8 @@ class FolderClassificationService {
             
             // Prioritize faster models
             final preferences = [
-                'models/gemini-1.5-flash',
-                'models/gemini-1.5-pro',
+                'models/gemini-2.5-flash',
+                'models/gemini-2.5-pro',
                 'models/gemini-1.0-pro',
                 'models/gemini-pro',
             ];

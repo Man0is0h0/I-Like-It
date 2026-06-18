@@ -124,7 +124,7 @@ class _AddLinkDialogState extends State<AddLinkDialog> {
       );
 
       try {
-        await db.insert('links', link.toMap());
+        await DatabaseHelper.instance.insertLink(link.toMap());
         print('Saved link with URL: $url to folder: ${widget.folderId}');
       } on DatabaseException catch (e) {
         if (e.toString().contains('UNIQUE constraint failed')) {
@@ -196,12 +196,18 @@ class _AddLinkDialogState extends State<AddLinkDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final inputStyle = TextStyle(
+      color: isDark ? Colors.white : Colors.black,
+      fontSize: 14,
+    );
+
     return AlertDialog(
       title: const Text('Add Link'),
       content: TextField(
         controller: _controller,
         autofocus: true,
-        style: AppTheme.bodyMedium,
+        style: inputStyle,
         decoration: InputDecoration(
           hintText: 'Paste link here',
           border: OutlineInputBorder(
@@ -275,6 +281,12 @@ class _NotesDialogState extends State<_NotesDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final inputStyle = TextStyle(
+      color: isDark ? Colors.white : Colors.black,
+      fontSize: 14,
+    );
+
     return AlertDialog(
       title: const Text('Add Notes (Optional)'),
       content: SingleChildScrollView(
@@ -296,7 +308,7 @@ class _NotesDialogState extends State<_NotesDialog> {
             controller: _controller,
             autofocus: true,
             maxLines: 3,
-            style: AppTheme.bodyMedium,
+            style: inputStyle,
             decoration: InputDecoration(
               hintText: 'Add your notes... (e.g., "Funny cat video", "Read later")',
               border: OutlineInputBorder(

@@ -42,6 +42,15 @@ class _FolderSuggestionDialogState extends State<FolderSuggestionDialog> {
       linkContent: widget.linkContent,
       existingFolders: widget.folders,
     );
+
+    // Call setState when suggestion resolves to rebuild parent actions with _lastSuggestion
+    suggestionFuture.then((result) {
+      if (mounted) {
+        setState(() {
+          _lastSuggestion = result;
+        });
+      }
+    });
   }
 
   @override
