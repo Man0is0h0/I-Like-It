@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/auth/user_session_manager.dart';
 import '../../core/database/database_helper.dart';
 import '../../core/sync/sync_manager.dart';
@@ -277,6 +278,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
 
     if (confirmed == true && mounted) {
+      try {
+        await Supabase.instance.client.auth.signOut();
+      } catch (_) {}
       await UserSessionManager.clearSession();
       await DatabaseHelper.instance.clearAllData();
       

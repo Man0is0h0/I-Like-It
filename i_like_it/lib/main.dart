@@ -7,6 +7,7 @@ import 'features/onboarding/initial_setup_screen.dart';
 import 'features/onboarding/splash_screen.dart';
 import 'theme/app_theme.dart';
 import 'features/folders/folder_screen.dart';
+import 'features/onboarding/reset_password_screen.dart';
 import 'features/share/share_save_screen.dart';
 
 
@@ -57,6 +58,8 @@ class ILikeItApp extends StatefulWidget {
   final bool isBackedUp;
   const ILikeItApp({super.key, required this.isBackedUp});
 
+  static final navigatorKey = GlobalKey<NavigatorState>();
+
   @override
   State<ILikeItApp> createState() => _ILikeItAppState();
 }
@@ -69,6 +72,19 @@ class _ILikeItAppState extends State<ILikeItApp> {
   @override
   void initState() {
     super.initState();
+
+    // Listen to Auth state changes for password recovery deep link
+    if (AppConfig.instance.supabaseUrl.isNotEmpty && AppConfig.instance.supabaseAnonKey.isNotEmpty) {
+      Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+        final AuthChangeEvent event = data.event;
+        if (event == AuthChangeEvent.passwordRecovery) {
+          ILikeItApp.navigatorKey.currentState?.pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => const ResetPasswordScreen()),
+            (route) => false,
+          );
+        }
+      });
+    }
 
     _channel.setMethodCallHandler((call) async {
       if (call.method == 'sharedText') {
@@ -107,6 +123,7 @@ class _ILikeItAppState extends State<ILikeItApp> {
       valueListenable: ThemeManager.instance.themeModeNotifier,
       builder: (context, themeMode, child) {
         return MaterialApp(
+          navigatorKey: ILikeItApp.navigatorKey,
           debugShowCheckedModeBanner: false,
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,

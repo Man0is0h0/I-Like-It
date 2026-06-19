@@ -1,0 +1,4 @@
+SMTP_HOST=smtp.zoho.in
+SMTP_PORT=465
+SMTP_USER=support@ilikeit.co.in
+SMTP_PASS=owner_srk@5781

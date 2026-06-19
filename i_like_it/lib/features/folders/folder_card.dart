@@ -32,30 +32,84 @@ class FolderCard extends StatelessWidget {
     return colors[hash % colors.length];
   }
 
-  IconData _parseIcon(String? iconName) {
-    if (iconName == null || iconName.isEmpty) return Icons.folder_rounded;
-    // Map of common icon names back to IconData
+  IconData _parseIcon(String? iconCode) {
+    if (iconCode == null || iconCode.isEmpty) return Icons.folder_rounded;
+    // Hex codepoint map matching FolderIconPicker
     final map = {
-      'work': Icons.work_rounded,
-      'shopping': Icons.shopping_bag_rounded,
-      'favorite': Icons.favorite_rounded,
-      'recipe': Icons.restaurant_rounded,
-      'travel': Icons.flight_takeoff_rounded,
-      'study': Icons.school_rounded,
-      'finance': Icons.account_balance_wallet_rounded,
-      'health': Icons.favorite_rounded,
-      'gaming': Icons.sports_esports_rounded,
-      'music': Icons.music_note_rounded,
-      'video': Icons.video_library_rounded,
-      'book': Icons.book_rounded,
-      'article': Icons.article_rounded,
-      'project': Icons.assignment_rounded,
-      'idea': Icons.lightbulb_rounded,
-      'home': Icons.home_rounded,
-      'family': Icons.family_restroom_rounded,
-      'code': Icons.code_rounded,
+      // Folder Icons
+      '0xe3b0': Icons.folder,
+      '0xf06b': Icons.folder_open,
+      '0xf07b': Icons.folder_special,
+      // Document Icons
+      '0xf1c6': Icons.description,
+      '0xf0f6': Icons.file_present,
+      '0xe80c': Icons.article,
+      '0xe8d0': Icons.note,
+      '0xe3c9': Icons.notes,
+      // Media Icons
+      '0xe8a5': Icons.image,
+      '0xe04b': Icons.video_library,
+      '0xf001': Icons.music_note,
+      '0xe3fc': Icons.photo,
+      '0xe04e': Icons.videocam,
+      '0xe3b1': Icons.collections,
+      // Organization Icons
+      '0xe875': Icons.bookmark,
+      '0xe839': Icons.favorite,
+      '0xf591': Icons.star,
+      '0xe5ca': Icons.label,
+      '0xe3b8': Icons.category,
+      '0xe863': Icons.archive,
+      // Business/Work Icons
+      '0xe8e0': Icons.work,
+      '0xe8d5': Icons.business,
+      '0xe8d3': Icons.engineering,
+      '0xf1bc': Icons.assignment,
+      '0xe8dd': Icons.task,
+      '0xe8dc': Icons.checklist,
+      '0xe192': Icons.attach_money,
+      '0xf170': Icons.trending_up,
+      // Personal Icons
+      '0xe871': Icons.home,
+      '0xf0e6': Icons.school,
+      '0xf086': Icons.lightbulb,
+      '0xe919': Icons.psychology,
+      '0xf195': Icons.travel_explore,
+      '0xf04a': Icons.sports_basketball,
+      // Tech Icons
+      '0xf123': Icons.code,
+      '0xf0d6': Icons.settings,
+      '0xe30b': Icons.computer,
+      '0xe325': Icons.phone_android,
+      '0xe3ce': Icons.terminal,
+      '0xe30c': Icons.storage,
+      // Shopping & Lifestyle
+      '0xe5dd': Icons.shopping_bag,
+      '0xe53a': Icons.shopping_cart,
+      '0xe32e': Icons.restaurant,
+      '0xe6d3': Icons.local_cafe,
+      '0xe8a0': Icons.health_and_safety,
+      '0xe8c9': Icons.fitness_center,
+      // Social & Communication
+      '0xe0b9': Icons.people,
+      '0xe0ba': Icons.person,
+      '0xe0c0': Icons.mail,
+      '0xe0c1': Icons.chat,
+      '0xe0c2': Icons.comment,
+      '0xe0c8': Icons.notifications,
+      // Time & Calendar
+      '0xe935': Icons.calendar_today,
+      '0xe937': Icons.schedule,
+      '0xe8c5': Icons.event,
+      // Misc
+      '0xe25c': Icons.lock,
+      '0xe899': Icons.key,
+      '0xe8d7': Icons.palette,
+      '0xf05a': Icons.pets,
+      '0xe55b': Icons.info,
+      '0xe5d5': Icons.help,
     };
-    return map[iconName] ?? Icons.folder_rounded;
+    return map[iconCode] ?? Icons.folder_rounded;
   }
 
   @override
@@ -103,7 +157,7 @@ class FolderCard extends StatelessWidget {
                       folder.name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+                      style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600, fontSize: 12),
                     ),
                     Text(
                       '${folder.itemCount} ${folder.itemCount == 1 ? 'Item' : 'Items'}',

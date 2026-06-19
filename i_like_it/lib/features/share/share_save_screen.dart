@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../core/auth/user_session_manager.dart';
 import '../../core/database/database_helper.dart';
 import '../../core/models/folder_model.dart';
 import '../../core/utils/metadata_extractor.dart';
@@ -7,6 +8,7 @@ import '../../core/widgets/success_confetti_popup.dart';
 import '../../theme/app_theme.dart';
 import '../links/folder_suggestion_dialog.dart';
 import '../../core/widgets/gradient_scaffold.dart'; // New
+import '../onboarding/initial_setup_screen.dart';
 
 class ShareSaveScreen extends StatefulWidget {
   final String sharedLink;
@@ -25,16 +27,35 @@ class ShareSaveScreen extends StatefulWidget {
 class _ShareSaveScreenState extends State<ShareSaveScreen> {
   List<Folder> folders = [];
   bool loading = true;
+  bool _isLoggedIn = true;
   late final String cleanUrl;
 
   @override
   void initState() {
     super.initState();
     cleanUrl = MetadataExtractor.extractCleanUrl(widget.sharedLink);
-    _loadFoldersAndShowSuggestions();
+    _checkLoginAndProceed();
+  }
+
+  void _checkLoginAndProceed() {
+    if (UserSessionManager.email == null) {
+      setState(() => _isLoggedIn = false);
+    } else {
+      setState(() => _isLoggedIn = true);
+      _loadFoldersAndShowSuggestions();
+    }
+  }
+
+  Future<void> _navigateToLogin() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const InitialSetupScreen()),
+    );
+    // After returning from login screen, re-check login status
+    _checkLoginAndProceed();
   }
 
   Future<void> _loadFoldersAndShowSuggestions() async {
+
     // Check if we extracted a valid URL (should start with http/https)
     if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
       print('[SHARE_SCREEN] No valid URL found in shared text: $cleanUrl');
@@ -406,6 +427,84 @@ class _ShareSaveScreenState extends State<ShareSaveScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    // Show login required screen if user is not logged in
+    if (!_isLoggedIn) {
+      return GradientScaffold(
+        appBar: AppBar(
+          title: const Text('Save Link'),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          titleTextStyle: theme.textTheme.headlineSmall?.copyWith(fontSize: 20),
+          leading: IconButton(
+            icon: const Icon(Icons.close),
+            onPressed: () async {
+              const platform = MethodChannel('shared_link');
+              try {
+                await platform.invokeMethod('closeApp');
+              } catch (e) {
+                if (mounted) Navigator.pop(context);
+              }
+            },
+          ),
+        ),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: colorScheme.primary.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.lock_outline_rounded,
+                    size: 56,
+                    color: colorScheme.primary,
+                  ),
+                ),
+                const SizedBox(height: 28),
+                Text(
+                  'Login Required',
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'You need to log in to your iLikeIt account before you can save links.',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 32),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: _navigateToLogin,
+                    icon: const Icon(Icons.login_rounded),
+                    label: const Text('Log In', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: colorScheme.primary,
+                      foregroundColor: colorScheme.onPrimary,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     return GradientScaffold(
       appBar: AppBar(
         title: const Text('Save link to'),
