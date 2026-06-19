@@ -61,6 +61,11 @@ The database structure relies on specific tables, Row Level Security (RLS) polic
 6. **IMPORTANT:** Search the pasted text for `izlahmslmpmfeecpgkav` and replace it with your own **Project ID** (found in your URL).
 7. **IMPORTANT:** Search for `SERVICE_ROLE_KEY` and replace it with your actual Service Role Key (from Settings -> API).
 8. Hit **Run**.
+9. **Next, run the auxiliary scripts** sequentially to set up the rest of the backend features:
+   - Run `project-backend/auth_schema_updates.sql` (to enable welcome email triggers and the `username` column).
+   - Run `project-backend/storage_setup.sql` (to create the `legal-docs` storage bucket and configure access).
+   - Run `project-backend/enforce_unique_usernames.sql` (to apply unique constraints and add the username availability RPC function).
+   *(Remember to replace the hardcoded Project IDs inside these scripts with your own before running them).*
 
 ### What this script does:
 - **`users` Table:** Stores user profiles tied directly to Supabase Auth (`auth.uid()`).
@@ -102,11 +107,14 @@ The application uses a Deno-based Edge Function to securely send OTP login email
 1. Open a terminal at the project root.
 2. Ensure you are logged into the CLI: `supabase login`.
 3. Link your project: `supabase link --project-ref your-project-ref`.
-4. Deploy the function:
+4. Deploy the functions:
    ```bash
    cd project-backend
    supabase functions deploy send-otp --no-verify-jwt
+   supabase functions deploy send-welcome-email --no-verify-jwt
+   supabase functions deploy render-legal --no-verify-jwt
    ```
+5. **Set up Custom Email Templates**: For fully branded Verification, Password Reset, and Welcome emails, please follow the dedicated instructions located in `client_items/client_setup_guide.md`. This includes uploading the app logo and pasting custom HTML templates into your Supabase Dashboard.
 
 ### Step 3: Troubleshooting Email Sending
 - **Check Logs:** Go to Supabase -> Edge Functions -> `send-otp` -> **Logs**.

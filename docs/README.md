@@ -24,9 +24,10 @@
 - Operates 100% independently of network status. You can view, edit, move, or delete bookmarked links while entirely disconnected from the internet.
 - Utilizes an intelligent background sync manager that continuously monitors the application lifecycle to push local `dirty` flags to the cloud and pull down mutations performed on secondary devices.
 
-### 📧 Passwordless, OTP Authentication
+### 📧 Passwordless, OTP Authentication & Branded Communications
 - Frictionless email-based authentication pipeline.
-- Relies on custom Deno Edge Functions hosted on Supabase to send secure One-Time Passwords (OTPs) via verified SMTP providers (Resend or Gmail), preventing unauthorized access or credential leakages on the mobile client.
+- Real-time debounced username availability validation on registration.
+- Relies on custom Deno Edge Functions hosted on Supabase to send secure One-Time Passwords (OTPs), automated Welcome Emails, and Password Resets via verified SMTP providers (Resend or Zoho/Gmail), preventing unauthorized access or credential leakages on the mobile client.
 
 ### 🌓 Premium Glassmorphism Theming
 - Implements a truly modern visual language.
@@ -109,8 +110,11 @@ The repository is logically separated between the Flutter frontend implementatio
  ┃ ┣ 📂 ios/                   # Native iOS configurations & Swift handlers
  ┃ ┗ 📜 pubspec.yaml           # Flutter dependencies and asset registrations
  ┗ 📂 project-backend/         # ☁️ Supabase Backend Configuration
-   ┣ 📂 supabase/functions/    # TypeScript Deno Edge Functions (send-otp)
-   ┗ 📜 schema.sql             # Executable PostgreSQL schema & strict RLS policies
+   ┣ 📂 supabase/functions/    # TypeScript Deno Edge Functions (send-otp, send-welcome-email, render-legal)
+   ┣ 📜 schema.sql             # Executable PostgreSQL schema & strict RLS policies
+   ┣ 📜 auth_schema_updates.sql  # Triggers for welcome emails
+   ┣ 📜 storage_setup.sql      # Configures buckets for legal docs and assets
+   ┗ 📜 enforce_unique_usernames.sql # Real-time validation RPCs and constraints
 ```
 
 ## 🤝 Contribution Guidelines
