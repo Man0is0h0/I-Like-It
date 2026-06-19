@@ -14,8 +14,7 @@ VALUES (
 )
 ON CONFLICT (id) DO NOTHING;
 
--- 2. Enable Row-Level Security (RLS) on storage.objects if not already enabled
-ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
 
 -- 3. Policy: Allow anyone (public/anon) to read files from this bucket
 CREATE POLICY "Allow public read access to legal-docs" ON storage.objects

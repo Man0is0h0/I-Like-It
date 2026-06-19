@@ -33,7 +33,9 @@ class _AddLinkDialogState extends State<AddLinkDialog> {
     // Normalize URL: remove trailing slash and query parameters for consistent comparison
     var normalizedUrl = _normalizeUrlForComparison(url);
 
-    print('[ADD_LINK] Checking duplicate for URL: $normalizedUrl in folder: ${widget.folderId}');
+    print(
+      '[ADD_LINK] Checking duplicate for URL: $normalizedUrl in folder: ${widget.folderId}',
+    );
 
     // Check for duplicate link URLs in this folder
     final db = await DatabaseHelper.instance.database;
@@ -45,17 +47,23 @@ class _AddLinkDialogState extends State<AddLinkDialog> {
 
     // Check if any existing link has the same base URL
     final isDuplicate = existing.any((link) {
-      final existingNormalized = _normalizeUrlForComparison(link['url'] as String);
+      final existingNormalized = _normalizeUrlForComparison(
+        link['url'] as String,
+      );
       return existingNormalized == normalizedUrl;
     });
 
-    print('[ADD_LINK] Found ${existing.length} total links, duplicate: $isDuplicate');
-    
+    print(
+      '[ADD_LINK] Found ${existing.length} total links, duplicate: $isDuplicate',
+    );
+
     if (isDuplicate) {
       print('[ADD_LINK] Duplicate detected! Not saving.');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('This link already exists in this folder')),
+        const SnackBar(
+          content: Text('This link already exists in this folder'),
+        ),
       );
       return;
     }
@@ -67,7 +75,7 @@ class _AddLinkDialogState extends State<AddLinkDialog> {
       final metadata = await MetadataExtractor.extractMetadata(url);
       String title = metadata['title'] ?? '';
       String imageUrl = metadata['image'] ?? '';
-      
+
       // If no title found, use domain as title
       if (title.isEmpty) {
         try {
@@ -83,9 +91,9 @@ class _AddLinkDialogState extends State<AddLinkDialog> {
         setState(() => _saving = false);
         return;
       }
-      final notes = await showDialog<String>(
+      final details = await showDialog<Map<String, String>>(
         context: context,
-        builder: (context) => _NotesDialog(title: title),
+        builder: (context) => _DetailsDialog(initialTitle: title),
       );
 
       // Check again for duplicates before inserting (in case dialog took a long time)
@@ -96,7 +104,9 @@ class _AddLinkDialogState extends State<AddLinkDialog> {
       );
 
       final isDuplicateCheck = duplicateCheck.any((link) {
-        final existingNormalized = _normalizeUrlForComparison(link['url'] as String);
+        final existingNormalized = _normalizeUrlForComparison(
+          link['url'] as String,
+        );
         return existingNormalized == normalizedUrl;
       });
 
@@ -113,10 +123,13 @@ class _AddLinkDialogState extends State<AddLinkDialog> {
         return;
       }
 
+      final finalTitle = details?['title'] ?? title;
+      final notes = details?['notes'] ?? '';
+
       final link = LinkItem(
         folderId: widget.folderId,
         url: url,
-        title: title,
+        title: finalTitle.isNotEmpty ? finalTitle : title,
         domain: _extractDomain(url),
         imageUrl: imageUrl.isNotEmpty ? imageUrl : null,
         notes: notes,
@@ -134,7 +147,9 @@ class _AddLinkDialogState extends State<AddLinkDialog> {
           }
           setState(() => _saving = false);
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('This link already exists in this folder')),
+            const SnackBar(
+              content: Text('This link already exists in this folder'),
+            ),
           );
           if (mounted) Navigator.pop(context);
           return;
@@ -157,9 +172,12 @@ class _AddLinkDialogState extends State<AddLinkDialog> {
       setState(() => _saving = false);
 
       // Handle duplicate constraint errors
-      if (e is DatabaseException && e.toString().contains('UNIQUE constraint failed')) {
+      if (e is DatabaseException &&
+          e.toString().contains('UNIQUE constraint failed')) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('This link already exists in this folder')),
+          const SnackBar(
+            content: Text('This link already exists in this folder'),
+          ),
         );
       } else {
         ScaffoldMessenger.of(
@@ -255,27 +273,30 @@ class _AddLinkDialogState extends State<AddLinkDialog> {
   }
 }
 
-class _NotesDialog extends StatefulWidget {
-  final String title;
+class _DetailsDialog extends StatefulWidget {
+  final String initialTitle;
 
-  const _NotesDialog({required this.title});
+  const _DetailsDialog({required this.initialTitle});
 
   @override
-  State<_NotesDialog> createState() => _NotesDialogState();
+  State<_DetailsDialog> createState() => _DetailsDialogState();
 }
 
-class _NotesDialogState extends State<_NotesDialog> {
-  late TextEditingController _controller;
+class _DetailsDialogState extends State<_DetailsDialog> {
+  late TextEditingController _titleController;
+  late TextEditingController _notesController;
 
   @override
   void initState() {
     super.initState();
-    _controller = TextEditingController();
+    _titleController = TextEditingController(text: widget.initialTitle);
+    _notesController = TextEditingController();
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _titleController.dispose();
+    _notesController.dispose();
     super.dispose();
   }
 
@@ -288,61 +309,92 @@ class _NotesDialogState extends State<_NotesDialog> {
     );
 
     return AlertDialog(
-      title: const Text('Add Notes (Optional)'),
+      title: const Text('Link Details'),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-            'Link: ${widget.title}',
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
+            const Text(
+              'Title',
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
             ),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: _controller,
-            autofocus: true,
-            maxLines: 3,
-            style: inputStyle,
-            decoration: InputDecoration(
-              hintText: 'Add your notes... (e.g., "Funny cat video", "Read later")',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppTheme.borderColor),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppTheme.borderColor),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(
-                  color: AppTheme.primaryColor,
-                  width: 2,
+            const SizedBox(height: 8),
+            TextField(
+              controller: _titleController,
+              autofocus: true,
+              style: inputStyle,
+              decoration: InputDecoration(
+                hintText: 'Link title',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppTheme.borderColor),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppTheme.borderColor),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(
+                    color: AppTheme.primaryColor,
+                    width: 2,
+                  ),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 12,
                 ),
               ),
-              contentPadding: const EdgeInsets.all(12),
             ),
-            onSubmitted: (_) {
-              Navigator.pop(context, _controller.text.trim());
-            },
-          ),
-        ],
-      ),
+            const SizedBox(height: 16),
+            const Text(
+              'Notes (Optional)',
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _notesController,
+              maxLines: 3,
+              style: inputStyle,
+              decoration: InputDecoration(
+                hintText:
+                    'Add your notes... (e.g., "Funny cat video", "Read later")',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppTheme.borderColor),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppTheme.borderColor),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(
+                    color: AppTheme.primaryColor,
+                    width: 2,
+                  ),
+                ),
+                contentPadding: const EdgeInsets.all(12),
+              ),
+            ),
+          ],
+        ),
       ),
       actions: [
         TextButton(
-          onPressed: () => Navigator.pop(context, ''),
+          onPressed: () => Navigator.pop(context, {
+            'title': widget.initialTitle,
+            'notes': '',
+          }),
           child: const Text('Skip'),
         ),
         ElevatedButton(
           onPressed: () {
-            Navigator.pop(context, _controller.text.trim());
+            Navigator.pop(context, {
+              'title': _titleController.text.trim(),
+              'notes': _notesController.text.trim(),
+            });
           },
           child: const Text('Save'),
         ),

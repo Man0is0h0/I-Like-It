@@ -11,11 +11,8 @@ class FolderCard extends StatelessWidget {
   final Folder folder;
   final VoidCallback onRefresh;
 
-  const FolderCard({
-    Key? key,
-    required this.folder,
-    required this.onRefresh,
-  }) : super(key: key);
+  const FolderCard({Key? key, required this.folder, required this.onRefresh})
+    : super(key: key);
 
   Color _getDomainColor(String domain) {
     if (domain.isEmpty) return Colors.grey;
@@ -129,10 +126,8 @@ class FolderCard extends StatelessWidget {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) => LinkScreen(
-                  folderId: folder.id!,
-                  folderName: folder.name,
-                ),
+                builder: (_) =>
+                    LinkScreen(folderId: folder.id!, folderName: folder.name),
               ),
             );
           },
@@ -145,7 +140,11 @@ class FolderCard extends StatelessWidget {
                   color: _getDomainColor(folder.name).withOpacity(0.15),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(_parseIcon(folder.icon), color: _getDomainColor(folder.name), size: 24),
+                child: Icon(
+                  _parseIcon(folder.icon),
+                  color: _getDomainColor(folder.name),
+                  size: 24,
+                ),
               ),
               const SizedBox(width: 8),
               Expanded(
@@ -157,7 +156,10 @@ class FolderCard extends StatelessWidget {
                       folder.name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600, fontSize: 12),
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                      ),
                     ),
                     Text(
                       '${folder.itemCount} ${folder.itemCount == 1 ? 'Item' : 'Items'}',
@@ -170,7 +172,11 @@ class FolderCard extends StatelessWidget {
                 ),
               ),
               PopupMenuButton<String>(
-                icon: Icon(Icons.more_vert, size: 20, color: colorScheme.onSurfaceVariant),
+                icon: Icon(
+                  Icons.more_vert,
+                  size: 20,
+                  color: colorScheme.onSurfaceVariant,
+                ),
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
                 itemBuilder: (context) => [
@@ -178,7 +184,11 @@ class FolderCard extends StatelessWidget {
                     value: 'edit',
                     child: Row(
                       children: [
-                        Icon(Icons.edit_outlined, size: 20, color: colorScheme.onSurfaceVariant),
+                        Icon(
+                          Icons.edit_outlined,
+                          size: 20,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
                         const SizedBox(width: 12),
                         Text('Rename', style: theme.textTheme.bodyMedium),
                       ],
@@ -188,9 +198,18 @@ class FolderCard extends StatelessWidget {
                     value: 'delete',
                     child: Row(
                       children: [
-                        Icon(Icons.delete_outline, size: 20, color: colorScheme.error),
+                        Icon(
+                          Icons.delete_outline,
+                          size: 20,
+                          color: colorScheme.error,
+                        ),
                         const SizedBox(width: 12),
-                        Text('Delete', style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.error)),
+                        Text(
+                          'Delete',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: colorScheme.error,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -211,7 +230,9 @@ class FolderCard extends StatelessWidget {
                       context: context,
                       builder: (ctx) => AlertDialog(
                         title: const Text('Delete Folder'),
-                        content: Text('Are you sure you want to delete "${folder.name}"? Links inside will not be deleted.'),
+                        content: Text(
+                          'Are you sure you want to delete "${folder.name}"? Links inside will not be deleted.',
+                        ),
                         actions: [
                           TextButton(
                             onPressed: () => Navigator.pop(ctx, false),
@@ -219,13 +240,15 @@ class FolderCard extends StatelessWidget {
                           ),
                           TextButton(
                             onPressed: () => Navigator.pop(ctx, true),
-                            style: TextButton.styleFrom(foregroundColor: colorScheme.error),
+                            style: TextButton.styleFrom(
+                              foregroundColor: colorScheme.error,
+                            ),
                             child: const Text('Delete'),
                           ),
                         ],
                       ),
                     );
-                    
+
                     if (confirm == true) {
                       await DatabaseHelper.instance.deleteFolder(folder.id!);
                       onRefresh();

@@ -5,15 +5,15 @@ class AppTheme {
   static const Color primaryColor = Color(0xFF017D3C); // Turf Green
   static const Color primaryDark = Color(0xFF03843B); // Sea Green
   static const Color primaryLight = Color(0xFFFBFCFC);
-  
+
   static const Color successColor = Color(0xFF059669); // Emerald 600
   static const Color warningColor = Color(0xFFD97706); // Amber 600
   static const Color errorColor = Color(0xFFDC2626); // Red 600
-  
+
   static const Color backgroundColor = Color(0xFFFBFCFC); // White
   static const Color surfaceColor = Color(0xFFFFFFFF); // White 2
   static const Color borderColor = Color(0x263B4247); // Iron Grey with opacity
-  
+
   static const Color textPrimary = Color(0xFF000000); // Solid Black
   static const Color textSecondary = Color(0xFF000000); // Solid Black
   static const Color textLight = Color(0xFF000000); // Solid Black
@@ -21,7 +21,9 @@ class AppTheme {
   // Dark Mode Palette (from user palette)
   static const Color _darkBackground = Color(0xFF030804); // Black
   static const Color _darkSurface = Color(0xFF0A0B0B); // Onyx
-  static const Color _darkBorder = Color(0x3326973C); // Forest Green with opacity
+  static const Color _darkBorder = Color(
+    0x3326973C,
+  ); // Forest Green with opacity
   static const Color _darkPrimary = Color(0xFF26973C); // Forest Green
   static const Color _darkTextPrimary = Color(0xFFFFFFFF); // Solid White
   static const Color _darkTextSecondary = Color(0xFFFFFFFF); // Solid White
@@ -229,9 +231,7 @@ class AppTheme {
       elevation: 4,
     ),
     textButtonTheme: TextButtonThemeData(
-      style: TextButton.styleFrom(
-        foregroundColor: _darkPrimary,
-      ),
+      style: TextButton.styleFrom(foregroundColor: _darkPrimary),
     ),
     iconTheme: const IconThemeData(color: _darkTextSecondary),
     listTileTheme: const ListTileThemeData(
@@ -247,10 +247,7 @@ class AppTheme {
       bodyMedium: bodyMedium,
       bodySmall: bodySmall,
       labelSmall: caption,
-    ).apply(
-      bodyColor: _darkTextPrimary,
-      displayColor: _darkTextPrimary,
-    ),
+    ).apply(bodyColor: _darkTextPrimary, displayColor: _darkTextPrimary),
   );
 
   // Typography - System-like, legible

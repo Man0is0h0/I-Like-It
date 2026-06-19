@@ -38,7 +38,7 @@ BEGIN
 
   -- Fallback to hardcoded project ref if request headers are not available (e.g. during background Auth signup)
   IF v_host IS NULL OR v_host = '' THEN
-    v_host := 'llkckimmpvbnehrzapsr.supabase.co';
+    v_host := 'izlahmslmpmfeecpgkav.supabase.co';
   END IF;
 
   IF v_apikey IS NULL OR v_apikey = '' THEN

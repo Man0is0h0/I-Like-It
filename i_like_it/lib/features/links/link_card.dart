@@ -23,7 +23,7 @@ class LinkCard extends StatelessWidget {
     final domain = UrlUtils.getDomainFromUrl(link.url);
     final title = link.title.isNotEmpty ? link.title : domain;
     final timeAgo = UrlUtils.formatTimestamp(link.createdAt);
-    
+
     // Determine type (basic heuristic)
     IconData typeIcon = Icons.link;
     String typeText = 'Link';
@@ -56,19 +56,22 @@ class LinkCard extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: _getDomainColor(domain).withOpacity(0.15),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: _getDomainColor(domain).withOpacity(0.3)),
+                    border: Border.all(
+                      color: _getDomainColor(domain).withOpacity(0.3),
+                    ),
                   ),
                   clipBehavior: Clip.antiAlias,
                   child: link.imageUrl != null && link.imageUrl!.isNotEmpty
                       ? Image.network(
                           link.imageUrl!,
                           fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => _buildFallbackInitial(domain),
+                          errorBuilder: (context, error, stackTrace) =>
+                              _buildFallbackInitial(domain),
                         )
                       : _buildFallbackInitial(domain),
                 ),
                 const SizedBox(width: 16),
-                
+
                 // Content
                 Expanded(
                   child: Column(
@@ -140,9 +143,8 @@ class LinkCard extends StatelessWidget {
       const Color(0xFFDB2777), // Pink
       const Color(0xFF2563EB), // Blue
     ];
-    
+
     final hash = domain.codeUnits.fold<int>(0, (prev, code) => prev + code);
     return colors[hash % colors.length];
   }
 }
-

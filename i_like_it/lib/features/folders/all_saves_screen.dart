@@ -71,9 +71,9 @@ class _AllSavesScreenState extends State<AllSavesScreen> {
         await DatabaseHelper.instance.deleteLink(link.id!);
         _loadLinks();
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Link deleted')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Link deleted')));
         }
       } catch (e) {
         if (mounted) {
@@ -88,7 +88,7 @@ class _AllSavesScreenState extends State<AllSavesScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return GradientScaffold(
       body: CustomScrollView(
         slivers: [
@@ -105,85 +105,114 @@ class _AllSavesScreenState extends State<AllSavesScreen> {
           else if (links.isEmpty)
             SliverFillRemaining(
               child: Center(
-                child: Text('No saved links found.', style: theme.textTheme.bodyLarge),
+                child: Text(
+                  'No saved links found.',
+                  style: theme.textTheme.bodyLarge,
+                ),
               ),
             )
           else
             SliverPadding(
               padding: const EdgeInsets.all(16),
               sliver: SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    final link = links[index];
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: LinkCard(
-                        link: link,
-                        onTap: () {
-                          String finalUrl = MetadataExtractor.extractCleanUrl(link.url);
-                          if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://')) {
-                            finalUrl = 'https://$finalUrl';
-                          }
-                          UrlUtils.launchBrowserOrApp(context, finalUrl);
-                        },
-                        trailing: PopupMenuButton(
-                          icon: Icon(Icons.more_vert, color: theme.colorScheme.onSurfaceVariant, size: 20),
-                          padding: EdgeInsets.zero,
-                          itemBuilder: (context) => [
-                            PopupMenuItem(
-                              value: 'share',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.share, size: 18, color: theme.colorScheme.primary),
-                                  const SizedBox(width: 8),
-                                  Text('Share', style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.primary)),
-                                ],
-                              ),
+                delegate: SliverChildBuilderDelegate((context, index) {
+                  final link = links[index];
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: LinkCard(
+                      link: link,
+                      onTap: () {
+                        String finalUrl = MetadataExtractor.extractCleanUrl(
+                          link.url,
+                        );
+                        if (!finalUrl.startsWith('http://') &&
+                            !finalUrl.startsWith('https://')) {
+                          finalUrl = 'https://$finalUrl';
+                        }
+                        UrlUtils.launchBrowserOrApp(context, finalUrl);
+                      },
+                      trailing: PopupMenuButton(
+                        icon: Icon(
+                          Icons.more_vert,
+                          color: theme.colorScheme.onSurfaceVariant,
+                          size: 20,
+                        ),
+                        padding: EdgeInsets.zero,
+                        itemBuilder: (context) => [
+                          PopupMenuItem(
+                            value: 'share',
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.share,
+                                  size: 18,
+                                  color: theme.colorScheme.primary,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Share',
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: theme.colorScheme.primary,
+                                  ),
+                                ),
+                              ],
                             ),
-                            PopupMenuItem(
-                              value: 'edit',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.edit_outlined, size: 18, color: theme.colorScheme.onSurface),
-                                  const SizedBox(width: 8),
-                                  Text('Edit', style: theme.textTheme.bodyMedium),
-                                ],
-                              ),
+                          ),
+                          PopupMenuItem(
+                            value: 'edit',
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.edit_outlined,
+                                  size: 18,
+                                  color: theme.colorScheme.onSurface,
+                                ),
+                                const SizedBox(width: 8),
+                                Text('Edit', style: theme.textTheme.bodyMedium),
+                              ],
                             ),
-                            PopupMenuItem(
-                              value: 'delete',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.delete_outline, size: 18, color: theme.colorScheme.error),
-                                  const SizedBox(width: 8),
-                                  Text('Delete', style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.error)),
-                                ],
-                              ),
+                          ),
+                          PopupMenuItem(
+                            value: 'delete',
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.delete_outline,
+                                  size: 18,
+                                  color: theme.colorScheme.error,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Delete',
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: theme.colorScheme.error,
+                                  ),
+                                ),
+                              ],
                             ),
-                          ],
-                          onSelected: (value) async {
-                            if (value == 'share') {
-                              Share.share(link.url);
-                            } else if (value == 'edit') {
-                              final edited = await showDialog<bool>(
-                                context: context,
-                                builder: (_) => EditLinkDialog(link: link),
-                              );
-                              if (edited == true) {
-                                _loadLinks();
-                                SyncManager.instance.sync();
-                              }
-                            } else if (value == 'delete') {
-                              await _deleteLink(link);
+                          ),
+                        ],
+                        onSelected: (value) async {
+                          if (value == 'share') {
+                            Share.share(link.url);
+                          } else if (value == 'edit') {
+                            final edited = await showDialog<bool>(
+                              context: context,
+                              builder: (_) => EditLinkDialog(link: link),
+                            );
+                            if (edited == true) {
+                              _loadLinks();
                               SyncManager.instance.sync();
                             }
-                          },
-                        ),
+                          } else if (value == 'delete') {
+                            await _deleteLink(link);
+                            SyncManager.instance.sync();
+                          }
+                        },
                       ),
-                    );
-                  },
-                  childCount: links.length,
-                ),
+                    ),
+                  );
+                }, childCount: links.length),
               ),
             ),
         ],

@@ -33,10 +33,13 @@ class _AdminScreenState extends State<AdminScreen> {
     } else {
       ScaffoldMessenger.of(context).removeCurrentSnackBar();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Refreshing dashboard data...'), duration: Duration(seconds: 1)),
+        const SnackBar(
+          content: Text('Refreshing dashboard data...'),
+          duration: Duration(seconds: 1),
+        ),
       );
     }
-    
+
     try {
       final results = await Future.wait([
         SyncManager.instance.remoteDataSource.fetchSystemStats(),
@@ -53,17 +56,17 @@ class _AdminScreenState extends State<AdminScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading dashboard: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error loading dashboard: $e')));
         setState(() => _isLoading = false);
       }
     }
   }
 
   void _handleLogout() {
-     UserSessionManager.clearSession();
-     Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+    UserSessionManager.clearSession();
+    Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
   }
 
   @override
@@ -93,10 +96,7 @@ class _AdminScreenState extends State<AdminScreen> {
                                 Row(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Expanded(
-                                      flex: 4,
-                                      child: UserGrowthChart(),
-                                    ),
+                                    Expanded(flex: 4, child: UserGrowthChart()),
                                     const SizedBox(width: 24),
                                     Expanded(
                                       flex: 3,
@@ -118,7 +118,7 @@ class _AdminScreenState extends State<AdminScreen> {
                               const SizedBox(height: 24),
                               InsightsTable(
                                 key: _tableKey,
-                                data: _folderDistribution
+                                data: _folderDistribution,
                               ),
                               const SizedBox(height: 48),
                             ],
@@ -135,7 +135,7 @@ class _AdminScreenState extends State<AdminScreen> {
 
   Widget _buildHeader() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
+
     return ClipRRect(
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
@@ -143,14 +143,21 @@ class _AdminScreenState extends State<AdminScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           decoration: BoxDecoration(
             color: Theme.of(context).scaffoldBackgroundColor.withOpacity(0.8),
-            border: Border(bottom: BorderSide(color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05))),
+            border: Border(
+              bottom: BorderSide(
+                color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05),
+              ),
+            ),
           ),
           child: SafeArea(
             bottom: false,
             child: Row(
               children: [
                 IconButton(
-                  icon: Icon(Icons.arrow_back, color: Theme.of(context).iconTheme.color),
+                  icon: Icon(
+                    Icons.arrow_back,
+                    color: Theme.of(context).iconTheme.color,
+                  ),
                   onPressed: () => Navigator.of(context).pop(),
                 ),
                 const SizedBox(width: 16),
@@ -161,10 +168,18 @@ class _AdminScreenState extends State<AdminScreen> {
                     color: Theme.of(context).primaryColor,
                     borderRadius: BorderRadius.circular(8),
                     boxShadow: [
-                      BoxShadow(color: Theme.of(context).primaryColor.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 4)),
+                      BoxShadow(
+                        color: Theme.of(context).primaryColor.withOpacity(0.3),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
                     ],
                   ),
-                  child: const Icon(Icons.grid_view, color: Colors.white, size: 20),
+                  child: const Icon(
+                    Icons.grid_view,
+                    color: Colors.white,
+                    size: 20,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -179,13 +194,16 @@ class _AdminScreenState extends State<AdminScreen> {
                 ),
 
                 Container(
-                  height: 24, 
-                  width: 1, 
-                  color: isDark ? Colors.white10 : Colors.black12, 
-                  margin: const EdgeInsets.symmetric(horizontal: 8)
+                  height: 24,
+                  width: 1,
+                  color: isDark ? Colors.white10 : Colors.black12,
+                  margin: const EdgeInsets.symmetric(horizontal: 8),
                 ),
                 IconButton(
-                  icon: Icon(Icons.refresh, color: Theme.of(context).iconTheme.color?.withOpacity(0.7)),
+                  icon: Icon(
+                    Icons.refresh,
+                    color: Theme.of(context).iconTheme.color?.withOpacity(0.7),
+                  ),
                   tooltip: 'Refresh Data',
                   onPressed: _loadData,
                 ),
@@ -211,20 +229,44 @@ class _AdminScreenState extends State<AdminScreen> {
     final active = _stats!['active_users'].toString();
 
     final cards = [
-      DashboardKpiCard(title: 'Total Users', value: users, icon: Icons.people, color: Colors.blue),
-      DashboardKpiCard(title: 'Active (24h)', value: active, icon: Icons.offline_bolt, color: Colors.orange),
-      DashboardKpiCard(title: 'Total Links', value: links, icon: Icons.link, color: Colors.purple),
-      DashboardKpiCard(title: 'Total Folders', value: folders, icon: Icons.folder, color: Colors.teal),
+      DashboardKpiCard(
+        title: 'Total Users',
+        value: users,
+        icon: Icons.people,
+        color: Colors.blue,
+      ),
+      DashboardKpiCard(
+        title: 'Active (24h)',
+        value: active,
+        icon: Icons.offline_bolt,
+        color: Colors.orange,
+      ),
+      DashboardKpiCard(
+        title: 'Total Links',
+        value: links,
+        icon: Icons.link,
+        color: Colors.purple,
+      ),
+      DashboardKpiCard(
+        title: 'Total Folders',
+        value: folders,
+        icon: Icons.folder,
+        color: Colors.teal,
+      ),
     ];
 
     if (isDesktop) {
       return Row(
-        children: cards.map((c) => Expanded(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: c,
-          ),
-        )).toList(),
+        children: cards
+            .map(
+              (c) => Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: c,
+                ),
+              ),
+            )
+            .toList(),
       );
     } else {
       return GridView.count(

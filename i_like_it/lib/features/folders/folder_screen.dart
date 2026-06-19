@@ -38,7 +38,8 @@ class FolderScreen extends StatefulWidget {
   State<FolderScreen> createState() => _FolderScreenState();
 }
 
-class _FolderScreenState extends State<FolderScreen> with WidgetsBindingObserver {
+class _FolderScreenState extends State<FolderScreen>
+    with WidgetsBindingObserver {
   List<Folder> folders = [];
   List<LinkItem> recentLinks = [];
   bool _isAdmin = false;
@@ -51,7 +52,7 @@ class _FolderScreenState extends State<FolderScreen> with WidgetsBindingObserver
     WidgetsBinding.instance.addObserver(this); // Register observer
     _checkAdmin();
     _init(); // This now handles loading logic
-    
+
     // Listen for sync updates
     _syncSubscription = SyncManager.instance.onSyncCompleted.listen((_) {
       if (mounted) {
@@ -94,7 +95,7 @@ class _FolderScreenState extends State<FolderScreen> with WidgetsBindingObserver
       if (mounted && role == 'admin') {
         setState(() => _isAdmin = true);
       }
-        } catch (_) {}
+    } catch (_) {}
   }
 
   Future<void> _handleLogout() async {
@@ -126,7 +127,7 @@ class _FolderScreenState extends State<FolderScreen> with WidgetsBindingObserver
       await UserSessionManager.clearSession();
       await DatabaseHelper.instance.clearAllData();
       SyncManager.instance.resetUserCreated();
-      
+
       if (mounted) {
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (_) => InitialSetupScreen()),
@@ -160,13 +161,15 @@ class _FolderScreenState extends State<FolderScreen> with WidgetsBindingObserver
   Future<void> _loadFolders({bool silent = false}) async {
     // If not silent, we want to show loading state
     if (!silent && mounted) {
-       setState(() => _isLoading = true);
+      setState(() => _isLoading = true);
     }
 
     // Capture start time to ensure minimum loading duration
     final startTime = DateTime.now();
     // Duration for the welcome animation to complete comfortably
-    final minDuration = silent ? Duration.zero : const Duration(milliseconds: 3500);
+    final minDuration = silent
+        ? Duration.zero
+        : const Duration(milliseconds: 3500);
 
     // Calculate remaining time to wait
     if (!silent) {
@@ -197,8 +200,6 @@ class _FolderScreenState extends State<FolderScreen> with WidgetsBindingObserver
       }
     });
   }
-  
-
 
   Future<void> _deleteFolder(Folder folder) async {
     final confirmed = await showDialog<bool>(
@@ -215,7 +216,10 @@ class _FolderScreenState extends State<FolderScreen> with WidgetsBindingObserver
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete', style: TextStyle(color: AppTheme.errorColor)),
+            child: const Text(
+              'Delete',
+              style: TextStyle(color: AppTheme.errorColor),
+            ),
           ),
         ],
       ),
@@ -224,12 +228,12 @@ class _FolderScreenState extends State<FolderScreen> with WidgetsBindingObserver
     if (confirmed == true) {
       try {
         await DatabaseHelper.instance.deleteFolder(folder.id!);
-        
+
         _loadFolders(silent: true);
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Folder deleted')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Folder deleted')));
         }
       } catch (e) {
         if (mounted) {
@@ -251,7 +255,7 @@ class _FolderScreenState extends State<FolderScreen> with WidgetsBindingObserver
       final title = metadata['title'] ?? '';
       final description = metadata['description'] ?? '';
       final content = metadata['content'] ?? '';
-      
+
       print('[FOLDER_PICKER] Metadata extracted - title: $title');
 
       if (!mounted) {
@@ -259,7 +263,9 @@ class _FolderScreenState extends State<FolderScreen> with WidgetsBindingObserver
         return;
       }
 
-      print('[FOLDER_PICKER] Showing suggestion dialog with ${folders.length} folders');
+      print(
+        '[FOLDER_PICKER] Showing suggestion dialog with ${folders.length} folders',
+      );
       // Show folder suggestion dialog
       final selectedFolder = await showDialog<Folder>(
         context: context,
@@ -305,16 +311,11 @@ class _FolderScreenState extends State<FolderScreen> with WidgetsBindingObserver
               children: [
                 const Padding(
                   padding: EdgeInsets.all(16),
-                  child: Text(
-                    'Save to folder',
-                    style: AppTheme.heading3,
-                  ),
+                  child: Text('Save to folder', style: AppTheme.heading3),
                 ),
                 Expanded(
                   child: folders.isEmpty
-                      ? const Center(
-                          child: Text('No folders available'),
-                        )
+                      ? const Center(child: Text('No folders available'))
                       : ListView.builder(
                           itemCount: folders.length,
                           itemBuilder: (context, index) {
@@ -392,9 +393,9 @@ class _FolderScreenState extends State<FolderScreen> with WidgetsBindingObserver
     } catch (e) {
       print('Error saving link: $e');
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to save link')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Failed to save link')));
     }
   }
 
@@ -489,7 +490,8 @@ class _FolderScreenState extends State<FolderScreen> with WidgetsBindingObserver
   final GlobalKey _menuButtonKey = GlobalKey();
 
   void _showMainMenu() async {
-    final renderBox = _menuButtonKey.currentContext?.findRenderObject() as RenderBox?;
+    final renderBox =
+        _menuButtonKey.currentContext?.findRenderObject() as RenderBox?;
     if (renderBox == null) return;
 
     final offset = renderBox.localToGlobal(Offset.zero);
@@ -504,7 +506,8 @@ class _FolderScreenState extends State<FolderScreen> with WidgetsBindingObserver
       PageRouteBuilder(
         opaque: false,
         barrierDismissible: true,
-        barrierColor: Colors.transparent, // We handle barrier manually for cleaner dismiss
+        barrierColor: Colors
+            .transparent, // We handle barrier manually for cleaner dismiss
         pageBuilder: (context, animation, secondaryAnimation) {
           return _FolderMenuOverlay(
             top: top,
@@ -528,69 +531,69 @@ class _FolderScreenState extends State<FolderScreen> with WidgetsBindingObserver
 
     if (_isLoading) {
       return GradientScaffold(
-         body: Center(
-           child: Column(
-             mainAxisAlignment: MainAxisAlignment.center,
-             children: [
-               // Animated Logo
-               TweenAnimationBuilder<double>(
-                 tween: Tween(begin: 0.0, end: 1.0),
-                 duration: const Duration(milliseconds: 800),
-                 curve: Curves.easeOutBack,
-                 builder: (context, value, child) {
-                   return Transform.scale(
-                     scale: value,
-                     child: Icon(
-                       Icons.folder_copy_rounded, 
-                       size: 80, 
-                       color: colorScheme.primary,
-                     ),
-                   );
-                 },
-               ),
-               const SizedBox(height: 40),
-               // Typewriter Text
-               DefaultTextStyle(
-                 style: theme.textTheme.headlineSmall!.copyWith(
-                   fontWeight: FontWeight.bold,
-                   color: colorScheme.onSurface,
-                   letterSpacing: 1.0,
-                 ),
-                 child: TweenAnimationBuilder<int>(
-                   tween: IntTween(begin: 0, end: "Welcome to I Like It".length),
-                   duration: const Duration(milliseconds: 2000),
-                   curve: Curves.linear,
-                   builder: (context, value, child) {
-                     final text = "Welcome to I Like It";
-                     return Row(
-                       mainAxisSize: MainAxisSize.min,
-                       children: [
-                         Text(text.substring(0, value)),
-                         // Blinking cursor effect
-                         if (value < text.length)
-                           TweenAnimationBuilder<double>(
-                             tween: Tween(begin: 0.0, end: 1.0),
-                             duration: const Duration(milliseconds: 500),
-                             builder: (context, value, child) {
-                               return Opacity(
-                                 opacity: value > 0.5 ? 1.0 : 0.0,
-                                 child: Container(
-                                   width: 2,
-                                   height: 24,
-                                   color: colorScheme.primary,
-                                 ),
-                               );
-                             },
-                             onEnd: () {},
-                           )
-                       ],
-                     );
-                   },
-                 ),
-               ),
-             ],
-           ),
-         ),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Animated Logo
+              TweenAnimationBuilder<double>(
+                tween: Tween(begin: 0.0, end: 1.0),
+                duration: const Duration(milliseconds: 800),
+                curve: Curves.easeOutBack,
+                builder: (context, value, child) {
+                  return Transform.scale(
+                    scale: value,
+                    child: Icon(
+                      Icons.folder_copy_rounded,
+                      size: 80,
+                      color: colorScheme.primary,
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 40),
+              // Typewriter Text
+              DefaultTextStyle(
+                style: theme.textTheme.headlineSmall!.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: colorScheme.onSurface,
+                  letterSpacing: 1.0,
+                ),
+                child: TweenAnimationBuilder<int>(
+                  tween: IntTween(begin: 0, end: "Welcome to I Like It".length),
+                  duration: const Duration(milliseconds: 2000),
+                  curve: Curves.linear,
+                  builder: (context, value, child) {
+                    final text = "Welcome to I Like It";
+                    return Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(text.substring(0, value)),
+                        // Blinking cursor effect
+                        if (value < text.length)
+                          TweenAnimationBuilder<double>(
+                            tween: Tween(begin: 0.0, end: 1.0),
+                            duration: const Duration(milliseconds: 500),
+                            builder: (context, value, child) {
+                              return Opacity(
+                                opacity: value > 0.5 ? 1.0 : 0.0,
+                                child: Container(
+                                  width: 2,
+                                  height: 24,
+                                  color: colorScheme.primary,
+                                ),
+                              );
+                            },
+                            onEnd: () {},
+                          ),
+                      ],
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
       );
     }
 
@@ -607,12 +610,19 @@ class _FolderScreenState extends State<FolderScreen> with WidgetsBindingObserver
             // Header with Logo and Profile
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.only(top: 24, left: 16, right: 16, bottom: 8),
+                padding: const EdgeInsets.only(
+                  top: 24,
+                  left: 16,
+                  right: 16,
+                  bottom: 8,
+                ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Image.asset(
-                      isDark ? 'assets/native_splash_transparent.png' : 'assets/light_logo_transparent.png',
+                      isDark
+                          ? 'assets/native_splash_transparent.png'
+                          : 'assets/light_logo_transparent.png',
                       height: 54,
                     ),
                     GestureDetector(
@@ -621,34 +631,50 @@ class _FolderScreenState extends State<FolderScreen> with WidgetsBindingObserver
                       child: CircleAvatar(
                         radius: 22,
                         backgroundColor: colorScheme.primary.withOpacity(0.15),
-                        child: Icon(Icons.person, color: colorScheme.primary, size: 24),
+                        child: Icon(
+                          Icons.person,
+                          color: colorScheme.primary,
+                          size: 24,
+                        ),
                       ),
                     ),
                   ],
                 ),
               ),
             ),
-            
+
             // Search Bar
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 child: GestureDetector(
-                  onTap: () => showSearch(context: context, delegate: GlobalSearchDelegate()),
+                  onTap: () => showSearch(
+                    context: context,
+                    delegate: GlobalSearchDelegate(),
+                  ),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
                     decoration: BoxDecoration(
                       color: theme.scaffoldBackgroundColor,
                       borderRadius: BorderRadius.circular(30),
-                      border: Border.all(color: colorScheme.outline.withOpacity(0.2)),
+                      border: Border.all(
+                        color: colorScheme.outline.withOpacity(0.2),
+                      ),
                     ),
                     child: Row(
                       children: [
                         Icon(Icons.search, color: colorScheme.onSurfaceVariant),
                         const SizedBox(width: 12),
-                        Text('Search your saved items...', 
+                        Text(
+                          'Search your saved items...',
                           style: theme.textTheme.bodyMedium?.copyWith(
-                            color: colorScheme.onSurfaceVariant
+                            color: colorScheme.onSurfaceVariant,
                           ),
                         ),
                       ],
@@ -666,15 +692,31 @@ class _FolderScreenState extends State<FolderScreen> with WidgetsBindingObserver
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Recent Saves', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                      Text(
+                        'Recent Saves',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                       TextButton(
                         onPressed: () {
-                          Navigator.push(context, MaterialPageRoute(builder: (_) => const AllSavesScreen()));
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const AllSavesScreen(),
+                            ),
+                          );
                         },
-                        child: Text('View all', style: TextStyle(color: colorScheme.primary)),
+                        child: Text(
+                          'View all',
+                          style: TextStyle(color: colorScheme.primary),
+                        ),
                         style: TextButton.styleFrom(
                           minimumSize: Size.zero,
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         ),
                       ),
@@ -683,79 +725,108 @@ class _FolderScreenState extends State<FolderScreen> with WidgetsBindingObserver
                 ),
               ),
               SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    final link = recentLinks[index];
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                      child: LinkCard(
-                        link: link,
-                        onTap: () {
-                          String finalUrl = MetadataExtractor.extractCleanUrl(link.url);
-                          if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://')) {
-                            finalUrl = 'https://$finalUrl';
-                          }
-                          UrlUtils.launchBrowserOrApp(context, finalUrl);
-                        },
-                        trailing: PopupMenuButton(
-                          icon: Icon(Icons.more_vert, color: colorScheme.onSurfaceVariant, size: 20),
-                          padding: EdgeInsets.zero,
-                          itemBuilder: (context) => [
-                            PopupMenuItem(
-                              value: 'share',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.share, size: 18, color: colorScheme.primary),
-                                  const SizedBox(width: 8),
-                                  Text('Share', style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.primary)),
-                                ],
-                              ),
+                delegate: SliverChildBuilderDelegate((context, index) {
+                  final link = recentLinks[index];
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 6,
+                    ),
+                    child: LinkCard(
+                      link: link,
+                      onTap: () {
+                        String finalUrl = MetadataExtractor.extractCleanUrl(
+                          link.url,
+                        );
+                        if (!finalUrl.startsWith('http://') &&
+                            !finalUrl.startsWith('https://')) {
+                          finalUrl = 'https://$finalUrl';
+                        }
+                        UrlUtils.launchBrowserOrApp(context, finalUrl);
+                      },
+                      trailing: PopupMenuButton(
+                        icon: Icon(
+                          Icons.more_vert,
+                          color: colorScheme.onSurfaceVariant,
+                          size: 20,
+                        ),
+                        padding: EdgeInsets.zero,
+                        itemBuilder: (context) => [
+                          PopupMenuItem(
+                            value: 'share',
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.share,
+                                  size: 18,
+                                  color: colorScheme.primary,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Share',
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: colorScheme.primary,
+                                  ),
+                                ),
+                              ],
                             ),
-                            PopupMenuItem(
-                              value: 'edit',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.edit_outlined, size: 18, color: colorScheme.onSurface),
-                                  const SizedBox(width: 8),
-                                  Text('Edit', style: theme.textTheme.bodyMedium),
-                                ],
-                              ),
+                          ),
+                          PopupMenuItem(
+                            value: 'edit',
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.edit_outlined,
+                                  size: 18,
+                                  color: colorScheme.onSurface,
+                                ),
+                                const SizedBox(width: 8),
+                                Text('Edit', style: theme.textTheme.bodyMedium),
+                              ],
                             ),
-                            PopupMenuItem(
-                              value: 'delete',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.delete_outline, size: 18, color: colorScheme.error),
-                                  const SizedBox(width: 8),
-                                  Text('Delete', style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.error)),
-                                ],
-                              ),
+                          ),
+                          PopupMenuItem(
+                            value: 'delete',
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.delete_outline,
+                                  size: 18,
+                                  color: colorScheme.error,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Delete',
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: colorScheme.error,
+                                  ),
+                                ),
+                              ],
                             ),
-                          ],
-                          onSelected: (value) async {
-                            if (value == 'share') {
-                              Share.share(link.url);
-                            } else if (value == 'edit') {
-                              final edited = await showDialog<bool>(
-                                context: context,
-                                builder: (_) => EditLinkDialog(link: link),
-                              );
-                              if (edited == true) {
-                                _loadFolders(silent: true);
-                                SyncManager.instance.sync();
-                              }
-                            } else if (value == 'delete') {
-                              await DatabaseHelper.instance.deleteLink(link.id!);
+                          ),
+                        ],
+                        onSelected: (value) async {
+                          if (value == 'share') {
+                            Share.share(link.url);
+                          } else if (value == 'edit') {
+                            final edited = await showDialog<bool>(
+                              context: context,
+                              builder: (_) => EditLinkDialog(link: link),
+                            );
+                            if (edited == true) {
                               _loadFolders(silent: true);
                               SyncManager.instance.sync();
                             }
-                          },
-                        ),
+                          } else if (value == 'delete') {
+                            await DatabaseHelper.instance.deleteLink(link.id!);
+                            _loadFolders(silent: true);
+                            SyncManager.instance.sync();
+                          }
+                        },
                       ),
-                    );
-                  },
-                  childCount: recentLinks.length,
-                ),
+                    ),
+                  );
+                }, childCount: recentLinks.length),
               ),
             ],
 
@@ -766,18 +837,31 @@ class _FolderScreenState extends State<FolderScreen> with WidgetsBindingObserver
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Folders', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                    Text(
+                      'Folders',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     TextButton(
                       onPressed: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (_) => const AllFoldersScreen()),
+                          MaterialPageRoute(
+                            builder: (_) => const AllFoldersScreen(),
+                          ),
                         ).then((_) => _loadFolders(silent: true));
                       },
-                      child: Text('View all', style: TextStyle(color: colorScheme.primary)),
+                      child: Text(
+                        'View all',
+                        style: TextStyle(color: colorScheme.primary),
+                      ),
                       style: TextButton.styleFrom(
                         minimumSize: Size.zero,
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
                     ),
@@ -786,13 +870,13 @@ class _FolderScreenState extends State<FolderScreen> with WidgetsBindingObserver
               ),
             ),
             if (folders.isEmpty)
-             SliverFillRemaining(
+              SliverFillRemaining(
                 hasScrollBody: false,
                 child: Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                       GlassContainer(
+                      GlassContainer(
                         borderRadius: BorderRadius.circular(100),
                         padding: const EdgeInsets.all(32),
                         child: Icon(
@@ -818,7 +902,9 @@ class _FolderScreenState extends State<FolderScreen> with WidgetsBindingObserver
                         },
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 32, vertical: 16),
+                            horizontal: 32,
+                            vertical: 16,
+                          ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(30),
                           ),
@@ -840,19 +926,16 @@ class _FolderScreenState extends State<FolderScreen> with WidgetsBindingObserver
                     mainAxisSpacing: 12,
                     childAspectRatio: 2.3, // Match mockup proportion
                   ),
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) {
-                      final folder = folders[index];
-                      return FolderCard(
-                        folder: folder,
-                        onRefresh: () => _loadFolders(silent: true),
-                      );
-                    },
-                    childCount: math.min(4, folders.length),
-                  ),
+                  delegate: SliverChildBuilderDelegate((context, index) {
+                    final folder = folders[index];
+                    return FolderCard(
+                      folder: folder,
+                      onRefresh: () => _loadFolders(silent: true),
+                    );
+                  }, childCount: math.min(4, folders.length)),
                 ),
               ),
-              
+
             // Extra padding at bottom for FAB
             const SliverToBoxAdapter(child: SizedBox(height: 100)),
           ],
@@ -876,11 +959,11 @@ class _FolderScreenState extends State<FolderScreen> with WidgetsBindingObserver
       context: context,
       builder: (context) => const AddFolderDialog(),
     );
-    
+
     if (result != null) {
       _loadFolders(silent: true);
       SyncManager.instance.sync();
-      
+
       if (result is Folder && mounted) {
         await SuccessConfettiPopup.show(
           context: context,
@@ -934,7 +1017,8 @@ class _FolderMenuOverlayState extends State<_FolderMenuOverlay> {
             color: Colors.transparent,
             elevation: 8, // Increased elevation
             borderRadius: BorderRadius.circular(16),
-            child: GlassContainer( // Wrap menu in GlassContainer
+            child: GlassContainer(
+              // Wrap menu in GlassContainer
               width: 260,
               padding: EdgeInsets.zero,
               borderRadius: BorderRadius.circular(16),
@@ -969,23 +1053,40 @@ class _FolderMenuOverlayState extends State<_FolderMenuOverlay> {
       mainAxisSize: MainAxisSize.min,
       children: [
         ListTile(
-          leading: Icon(Icons.palette_outlined, color: colorScheme.onSurface, size: 20),
+          leading: Icon(
+            Icons.palette_outlined,
+            color: colorScheme.onSurface,
+            size: 20,
+          ),
           title: Text('Appearance', style: theme.textTheme.bodyMedium),
-          trailing: Icon(Icons.chevron_right, color: colorScheme.onSurfaceVariant, size: 18),
+          trailing: Icon(
+            Icons.chevron_right,
+            color: colorScheme.onSurfaceVariant,
+            size: 18,
+          ),
           onTap: () => setState(() => _page = _MenuPage.appearance),
           dense: true,
         ),
 
         if (widget.isAdmin)
           ListTile(
-            leading: Icon(Icons.admin_panel_settings, color: colorScheme.primary, size: 20),
+            leading: Icon(
+              Icons.admin_panel_settings,
+              color: colorScheme.primary,
+              size: 20,
+            ),
             title: Text(
               'Admin Dashboard',
-              style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.primary),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: colorScheme.primary,
+              ),
             ),
             onTap: () {
               Navigator.pop(context);
-              Navigator.push(context, MaterialPageRoute(builder: (_) => AdminScreen()));
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => AdminScreen()),
+              );
             },
             dense: true,
           ),
@@ -993,7 +1094,9 @@ class _FolderMenuOverlayState extends State<_FolderMenuOverlay> {
           leading: Icon(Icons.logout, color: colorScheme.error, size: 20),
           title: Text(
             'Logout',
-            style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.error),
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: colorScheme.error,
+            ),
           ),
           onTap: () {
             Navigator.pop(context);
@@ -1023,15 +1126,22 @@ class _FolderMenuOverlayState extends State<_FolderMenuOverlay> {
                 Icon(Icons.arrow_back, color: colorScheme.onSurface, size: 18),
                 const SizedBox(width: 12),
                 Text(
-                  'Appearance', 
-                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)
+                  'Appearance',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ],
             ),
           ),
         ),
         const Divider(height: 1),
-        _buildThemeOption(context, 'System Default', ThemeMode.system, currentMode),
+        _buildThemeOption(
+          context,
+          'System Default',
+          ThemeMode.system,
+          currentMode,
+        ),
         _buildThemeOption(context, 'Light Mode', ThemeMode.light, currentMode),
         _buildThemeOption(context, 'Dark Mode', ThemeMode.dark, currentMode),
       ],
@@ -1039,10 +1149,10 @@ class _FolderMenuOverlayState extends State<_FolderMenuOverlay> {
   }
 
   Widget _buildThemeOption(
-    BuildContext context, 
-    String title, 
-    ThemeMode mode, 
-    ThemeMode current
+    BuildContext context,
+    String title,
+    ThemeMode mode,
+    ThemeMode current,
   ) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
@@ -1050,10 +1160,13 @@ class _FolderMenuOverlayState extends State<_FolderMenuOverlay> {
 
     return ListTile(
       leading: Icon(
-        mode == ThemeMode.light ? Icons.light_mode : 
-        mode == ThemeMode.dark ? Icons.dark_mode : Icons.brightness_auto,
+        mode == ThemeMode.light
+            ? Icons.light_mode
+            : mode == ThemeMode.dark
+            ? Icons.dark_mode
+            : Icons.brightness_auto,
         color: isSelected ? colorScheme.primary : colorScheme.onSurfaceVariant,
-        size: 20
+        size: 20,
       ),
       title: Text(
         title,
@@ -1062,15 +1175,17 @@ class _FolderMenuOverlayState extends State<_FolderMenuOverlay> {
           color: isSelected ? colorScheme.primary : colorScheme.onSurface,
         ),
       ),
-      trailing: isSelected ? Icon(Icons.check, color: colorScheme.primary, size: 18) : null,
+      trailing: isSelected
+          ? Icon(Icons.check, color: colorScheme.primary, size: 18)
+          : null,
       onTap: () {
         ThemeManager.instance.setThemeMode(mode);
         // Do not close menu, allow user to see change
-        // Or close? User request "transition between themes is choppy" could mean 
-        // they want to see it instantly without menu glitching. 
+        // Or close? User request "transition between themes is choppy" could mean
+        // they want to see it instantly without menu glitching.
         // Keeping menu open allows them to switch back if they don't like it.
         // We set state to trigger rebuild of icons
-        setState(() {}); 
+        setState(() {});
       },
       dense: true,
     );

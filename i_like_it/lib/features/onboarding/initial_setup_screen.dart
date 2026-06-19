@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -21,6 +22,76 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
   bool _isLogin = true;
   bool _isLoading = false;
 
+  // Validation state
+  String? _emailErrorText;
+  Timer? _usernameDebounce;
+  bool _isCheckingUsername = false;
+  bool? _isUsernameAvailable; // null = untouched, true = valid, false = taken
+  String _lastCheckedUsername = '';
+
+  void _onUsernameChanged(String username) {
+    final val = username.trim();
+    if (val.isEmpty) {
+      setState(() {
+        _isUsernameAvailable = null;
+        _isCheckingUsername = false;
+        _lastCheckedUsername = '';
+      });
+      _usernameDebounce?.cancel();
+      return;
+    }
+
+    setState(() {
+      _isCheckingUsername = true;
+      _isUsernameAvailable = null;
+    });
+
+    _usernameDebounce?.cancel();
+    _usernameDebounce = Timer(const Duration(milliseconds: 600), () {
+      _checkUsernameAvailability(val);
+    });
+  }
+
+  Future<void> _checkUsernameAvailability(String username) async {
+    if (username.isEmpty || !mounted) return;
+    try {
+      final exists = await Supabase.instance.client.rpc(
+        'check_username_exists',
+        params: {'username_to_check': username},
+      );
+
+      if (mounted && _usernameController.text.trim() == username) {
+        setState(() {
+          _isUsernameAvailable = !(exists as bool);
+          _isCheckingUsername = false;
+          _lastCheckedUsername = username;
+        });
+      }
+    } catch (e) {
+      if (mounted && _usernameController.text.trim() == username) {
+        setState(() {
+          _isCheckingUsername = false;
+          _isUsernameAvailable =
+              null; // Don't show error to disrupt, just don't show available
+        });
+        print('Error checking username: $e');
+      }
+    }
+  }
+
+  void _validateEmail(String value) {
+    if (value.isEmpty) {
+      setState(() => _emailErrorText = null);
+      return;
+    }
+    final bool emailValid = RegExp(
+      r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9-]+\.[a-zA-Z]+",
+    ).hasMatch(value);
+    setState(() {
+      _emailErrorText = emailValid ? null : 'Invalid email address';
+    });
+  }
+
   // Controllers
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -36,6 +107,7 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
 
   @override
   void dispose() {
+    _usernameDebounce?.cancel();
     _emailController.dispose();
     _passwordController.dispose();
     _usernameController.dispose();
@@ -54,9 +126,9 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not open page: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Could not open page: $e')));
       }
     }
   }
@@ -79,7 +151,7 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
                 // App Logo
                 GlassContainer(
                   borderRadius: BorderRadius.circular(100),
-                  height: 100, 
+                  height: 100,
                   width: 100,
                   padding: const EdgeInsets.all(20),
                   child: Icon(
@@ -106,7 +178,7 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 32),
-                
+
                 // Form Container
                 GlassContainer(
                   padding: const EdgeInsets.all(24),
@@ -118,7 +190,9 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
                       Container(
                         padding: const EdgeInsets.all(4),
                         decoration: BoxDecoration(
-                          color: theme.cardTheme.color?.withOpacity(0.3) ?? Colors.black12,
+                          color:
+                              theme.cardTheme.color?.withOpacity(0.3) ??
+                              Colors.black12,
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Row(
@@ -127,9 +201,13 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
                               child: GestureDetector(
                                 onTap: () => setState(() => _isLogin = true),
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 12,
+                                  ),
                                   decoration: BoxDecoration(
-                                    color: _isLogin ? colorScheme.primary : Colors.transparent,
+                                    color: _isLogin
+                                        ? colorScheme.primary
+                                        : Colors.transparent,
                                     borderRadius: BorderRadius.circular(10),
                                   ),
                                   child: Center(
@@ -137,7 +215,9 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
                                       'Login',
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
-                                        color: _isLogin ? colorScheme.onPrimary : colorScheme.onSurfaceVariant,
+                                        color: _isLogin
+                                            ? colorScheme.onPrimary
+                                            : colorScheme.onSurfaceVariant,
                                       ),
                                     ),
                                   ),
@@ -148,9 +228,13 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
                               child: GestureDetector(
                                 onTap: () => setState(() => _isLogin = false),
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 12,
+                                  ),
                                   decoration: BoxDecoration(
-                                    color: !_isLogin ? colorScheme.primary : Colors.transparent,
+                                    color: !_isLogin
+                                        ? colorScheme.primary
+                                        : Colors.transparent,
                                     borderRadius: BorderRadius.circular(10),
                                   ),
                                   child: Center(
@@ -158,7 +242,9 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
                                       'Sign Up',
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
-                                        color: !_isLogin ? colorScheme.onPrimary : colorScheme.onSurfaceVariant,
+                                        color: !_isLogin
+                                            ? colorScheme.onPrimary
+                                            : colorScheme.onSurfaceVariant,
                                       ),
                                     ),
                                   ),
@@ -169,8 +255,11 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
                         ),
                       ),
                       const SizedBox(height: 24),
-                      
-                      if (_isLogin) _buildLoginForm(colorScheme, theme) else _buildSignupForm(colorScheme, theme),
+
+                      if (_isLogin)
+                        _buildLoginForm(colorScheme, theme)
+                      else
+                        _buildSignupForm(colorScheme, theme),
                     ],
                   ),
                 ),
@@ -189,17 +278,24 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
       children: [
         Text(
           'Welcome Back',
-          style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+          style: theme.textTheme.headlineSmall?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
         ),
         const SizedBox(height: 16),
         TextField(
           controller: _emailController,
+          onChanged: _validateEmail,
           style: theme.textTheme.bodyMedium,
           decoration: InputDecoration(
             labelText: 'Email Address',
+            errorText: _emailErrorText,
             filled: true,
             fillColor: theme.cardTheme.color?.withOpacity(0.5),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
             prefixIcon: const Icon(Icons.email_outlined),
           ),
           keyboardType: TextInputType.emailAddress,
@@ -213,11 +309,17 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
             labelText: 'Password',
             filled: true,
             fillColor: theme.cardTheme.color?.withOpacity(0.5),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
             prefixIcon: const Icon(Icons.lock_outline_rounded),
             suffixIcon: IconButton(
-              icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
-              onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+              icon: Icon(
+                _obscurePassword ? Icons.visibility_off : Icons.visibility,
+              ),
+              onPressed: () =>
+                  setState(() => _obscurePassword = !_obscurePassword),
             ),
           ),
         ),
@@ -228,7 +330,10 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
             onPressed: _showForgotPasswordDialog,
             child: Text(
               'Forgot Password?',
-              style: TextStyle(color: colorScheme.primary, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                color: colorScheme.primary,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ),
@@ -239,11 +344,23 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
             backgroundColor: colorScheme.primary,
             foregroundColor: colorScheme.onPrimary,
             padding: const EdgeInsets.symmetric(vertical: 16),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
-          child: _isLoading 
-            ? SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: colorScheme.onPrimary, strokeWidth: 2)) 
-            : const Text('Log In', style: TextStyle(fontWeight: FontWeight.bold)),
+          child: _isLoading
+              ? SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(
+                    color: colorScheme.onPrimary,
+                    strokeWidth: 2,
+                  ),
+                )
+              : const Text(
+                  'Log In',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
         ),
       ],
     );
@@ -256,31 +373,69 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
       children: [
         Text(
           'Create Account',
-          style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+          style: theme.textTheme.headlineSmall?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
         ),
         const SizedBox(height: 16),
         // Username field
-        TextField(
-          controller: _usernameController,
-          style: theme.textTheme.bodyMedium,
-          decoration: InputDecoration(
-            labelText: 'Username',
-            filled: true,
-            fillColor: theme.cardTheme.color?.withOpacity(0.5),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-            prefixIcon: const Icon(Icons.person_outline),
-          ),
+        Builder(
+          builder: (context) {
+            Widget? suffixIcon;
+            if (_isCheckingUsername) {
+              suffixIcon = const Padding(
+                padding: EdgeInsets.all(12.0),
+                child: SizedBox(
+                  height: 16,
+                  width: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              );
+            } else if (_isUsernameAvailable == true) {
+              suffixIcon = const Icon(Icons.check_circle, color: Colors.green);
+            } else if (_isUsernameAvailable == false) {
+              suffixIcon = const Icon(Icons.cancel, color: Colors.red);
+            }
+
+            String? errorText;
+            if (_isUsernameAvailable == false) {
+              errorText = 'This username is already taken';
+            }
+
+            return TextField(
+              controller: _usernameController,
+              onChanged: _onUsernameChanged,
+              style: theme.textTheme.bodyMedium,
+              decoration: InputDecoration(
+                labelText: 'Username',
+                errorText: errorText,
+                filled: true,
+                fillColor: theme.cardTheme.color?.withOpacity(0.5),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                prefixIcon: const Icon(Icons.person_outline),
+                suffixIcon: suffixIcon,
+              ),
+            );
+          },
         ),
         const SizedBox(height: 16),
         // Email field
         TextField(
           controller: _emailController,
+          onChanged: _validateEmail,
           style: theme.textTheme.bodyMedium,
           decoration: InputDecoration(
             labelText: 'Email Address',
+            errorText: _emailErrorText,
             filled: true,
             fillColor: theme.cardTheme.color?.withOpacity(0.5),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
             prefixIcon: const Icon(Icons.email_outlined),
           ),
           keyboardType: TextInputType.emailAddress,
@@ -295,11 +450,17 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
             labelText: 'Password',
             filled: true,
             fillColor: theme.cardTheme.color?.withOpacity(0.5),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
             prefixIcon: const Icon(Icons.lock_outline_rounded),
             suffixIcon: IconButton(
-              icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
-              onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+              icon: Icon(
+                _obscurePassword ? Icons.visibility_off : Icons.visibility,
+              ),
+              onPressed: () =>
+                  setState(() => _obscurePassword = !_obscurePassword),
             ),
           ),
         ),
@@ -313,11 +474,20 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
             labelText: 'Confirm Password',
             filled: true,
             fillColor: theme.cardTheme.color?.withOpacity(0.5),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
             prefixIcon: const Icon(Icons.lock_outline_rounded),
             suffixIcon: IconButton(
-              icon: Icon(_obscureConfirmPassword ? Icons.visibility_off : Icons.visibility),
-              onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
+              icon: Icon(
+                _obscureConfirmPassword
+                    ? Icons.visibility_off
+                    : Icons.visibility,
+              ),
+              onPressed: () => setState(
+                () => _obscureConfirmPassword = !_obscureConfirmPassword,
+              ),
             ),
           ),
         ),
@@ -331,7 +501,8 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
               width: 24,
               child: Checkbox(
                 value: _termsAccepted,
-                onChanged: (val) => setState(() => _termsAccepted = val ?? false),
+                onChanged: (val) =>
+                    setState(() => _termsAccepted = val ?? false),
                 activeColor: colorScheme.primary,
               ),
             ),
@@ -344,16 +515,24 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
                     const TextSpan(text: 'I agree to the '),
                     TextSpan(
                       text: 'Privacy Policy',
-                      style: TextStyle(color: colorScheme.primary, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        color: colorScheme.primary,
+                        fontWeight: FontWeight.bold,
+                      ),
                       recognizer: TapGestureRecognizer()
-                        ..onTap = () => _launchUrl(AppConfig.instance.privacyPolicyUrl),
+                        ..onTap = () =>
+                            _launchUrl(AppConfig.instance.privacyPolicyUrl),
                     ),
                     const TextSpan(text: ' and '),
                     TextSpan(
                       text: 'Terms of Use',
-                      style: TextStyle(color: colorScheme.primary, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        color: colorScheme.primary,
+                        fontWeight: FontWeight.bold,
+                      ),
                       recognizer: TapGestureRecognizer()
-                        ..onTap = () => _launchUrl(AppConfig.instance.termsUseUrl),
+                        ..onTap = () =>
+                            _launchUrl(AppConfig.instance.termsUseUrl),
                     ),
                   ],
                 ),
@@ -368,11 +547,23 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
             backgroundColor: colorScheme.primary,
             foregroundColor: colorScheme.onPrimary,
             padding: const EdgeInsets.symmetric(vertical: 16),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
-          child: _isLoading 
-            ? SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: colorScheme.onPrimary, strokeWidth: 2)) 
-            : const Text('Sign Up', style: TextStyle(fontWeight: FontWeight.bold)),
+          child: _isLoading
+              ? SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(
+                    color: colorScheme.onPrimary,
+                    strokeWidth: 2,
+                  ),
+                )
+              : const Text(
+                  'Sign Up',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
         ),
       ],
     );
@@ -380,7 +571,9 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
 
   // FORGOT PASSWORD DIALOG
   void _showForgotPasswordDialog() {
-    final forgotEmailController = TextEditingController(text: _emailController.text);
+    final forgotEmailController = TextEditingController(
+      text: _emailController.text,
+    );
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
@@ -396,7 +589,9 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Text('Enter your email address to receive a password reset link.'),
+                  const Text(
+                    'Enter your email address to receive a password reset link.',
+                  ),
                   const SizedBox(height: 16),
                   TextField(
                     controller: forgotEmailController,
@@ -405,7 +600,10 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
                       labelText: 'Email Address',
                       filled: true,
                       fillColor: theme.cardTheme.color?.withOpacity(0.5),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
                     ),
                     keyboardType: TextInputType.emailAddress,
                   ),
@@ -413,50 +611,65 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
               ),
               actions: [
                 TextButton(
-                  onPressed: dialogLoading ? null : () => Navigator.pop(context),
+                  onPressed: dialogLoading
+                      ? null
+                      : () => Navigator.pop(context),
                   child: const Text('Cancel'),
                 ),
                 ElevatedButton(
-                  onPressed: dialogLoading ? null : () async {
-                    final email = forgotEmailController.text.trim().toLowerCase();
-                    if (email.isEmpty || !email.contains('@')) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Please enter a valid email')),
-                      );
-                      return;
-                    }
+                  onPressed: dialogLoading
+                      ? null
+                      : () async {
+                          final email = forgotEmailController.text
+                              .trim()
+                              .toLowerCase();
+                          if (email.isEmpty || !email.contains('@')) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Please enter a valid email'),
+                              ),
+                            );
+                            return;
+                          }
 
-                    setDialogState(() => dialogLoading = true);
-                    try {
-                      await Supabase.instance.client.auth.resetPasswordForEmail(
-                        email,
-                        redirectTo: 'ilikeit://reset-password',
-                      );
-                      if (mounted) {
-                        Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Reset link sent! Please check your email inbox.'),
-                            backgroundColor: Colors.green,
-                          ),
-                        );
-                      }
-                    } catch (e) {
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Error sending reset link: $e'),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
-                      }
-                    } finally {
-                      setDialogState(() => dialogLoading = false);
-                    }
-                  },
+                          setDialogState(() => dialogLoading = true);
+                          try {
+                            await Supabase.instance.client.auth
+                                .resetPasswordForEmail(
+                                  email,
+                                  redirectTo: 'ilikeit://reset-password',
+                                );
+                            if (mounted) {
+                              Navigator.pop(context);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Reset link sent! Please check your email inbox.',
+                                  ),
+                                  backgroundColor: Colors.green,
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Error sending reset link: $e'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                          } finally {
+                            setDialogState(() => dialogLoading = false);
+                          }
+                        },
                   child: dialogLoading
-                    ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Text('Send Reset Link'),
+                      ? const SizedBox(
+                          height: 18,
+                          width: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Send Reset Link'),
                 ),
               ],
             );
@@ -471,7 +684,10 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
     final email = _emailController.text.trim().toLowerCase();
     final password = _passwordController.text.trim();
 
-    if (email.isEmpty || !email.contains('@')) {
+    final bool emailValid = RegExp(
+      r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9-]+\.[a-zA-Z]+",
+    ).hasMatch(email);
+    if (email.isEmpty || !emailValid) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please enter a valid email address')),
       );
@@ -512,19 +728,49 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
         throw 'Failed to sign in. Please verify your email is confirmed.';
       }
     } on AuthException catch (e) {
-      String errorMessage = e.message;
-      if (e.message.toLowerCase().contains('email not confirmed') || e.code == 'email_not_confirmed') {
-        errorMessage = 'Please verify your email address. Check your inbox for the confirmation link.';
-      } else if (e.message.toLowerCase().contains('invalid login credentials')) {
-        errorMessage = 'Invalid email or password. Please try again.';
-      }
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMessage),
-            backgroundColor: Colors.red,
-          ),
-        );
+      if (e.message.toLowerCase().contains('email not confirmed') ||
+          e.code == 'email_not_confirmed') {
+        // Automatically resend OTP and show the verification dialog
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Email not verified. Resending verification code...',
+              ),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+        try {
+          await Supabase.instance.client.auth.resend(
+            type: OtpType.signup,
+            email: email,
+          );
+          if (mounted) {
+            _showOtpVerificationDialog(email);
+          }
+        } catch (resendError) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'Failed to resend verification code. Please try signing up again.',
+                ),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
+      } else {
+        String errorMessage = e.message;
+        if (e.message.toLowerCase().contains('invalid login credentials')) {
+          errorMessage = 'Invalid email or password. Please try again.';
+        }
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(errorMessage), backgroundColor: Colors.red),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -548,15 +794,22 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
     final confirmPassword = _confirmPasswordController.text.trim();
 
     if (username.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a username')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please enter a username')));
       return;
     }
 
-    if (email.isEmpty || !email.contains('@')) {
+    final bool emailValid = RegExp(
+      r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9-]+\.[a-zA-Z]+",
+    ).hasMatch(email);
+    if (email.isEmpty || !emailValid) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a valid email address')),
+        const SnackBar(
+          content: Text(
+            'Please enter a valid email address (e.g. name@example.com)',
+          ),
+        ),
       );
       return;
     }
@@ -569,15 +822,19 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
     }
 
     if (password != confirmPassword) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Passwords do not match')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Passwords do not match')));
       return;
     }
 
     if (!_termsAccepted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('You must accept the Privacy Policy and Terms of Use to sign up')),
+        const SnackBar(
+          content: Text(
+            'You must accept the Privacy Policy and Terms of Use to sign up',
+          ),
+        ),
       );
       return;
     }
@@ -585,6 +842,32 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
     setState(() => _isLoading = true);
 
     try {
+      // Final synchronous validation for username to prevent race conditions
+      if (_isUsernameAvailable == false ||
+          (_isUsernameAvailable == null && username.isNotEmpty)) {
+        final bool usernameExists = await Supabase.instance.client.rpc(
+          'check_username_exists',
+          params: {'username_to_check': username},
+        );
+        if (usernameExists) {
+          if (mounted) {
+            setState(() {
+              _isLoading = false;
+              _isUsernameAvailable = false;
+            });
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'This username is already taken. Please choose another.',
+                ),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+          return;
+        }
+      }
+
       // Check if email already exists in the database
       final bool emailExists = await Supabase.instance.client.rpc(
         'check_email_exists',
@@ -595,7 +878,9 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('This email address is already registered. Please log in instead.'),
+              content: Text(
+                'This email address is already registered. Please log in instead.',
+              ),
               backgroundColor: Colors.red,
             ),
           );
@@ -635,15 +920,14 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
       }
     } on AuthException catch (e) {
       String errorMessage = e.message;
-      if (e.message.toLowerCase().contains('user already registered') || e.code == 'user_already_exists') {
-        errorMessage = 'This email address is already registered. Please log in instead.';
+      if (e.message.toLowerCase().contains('user already registered') ||
+          e.code == 'user_already_exists') {
+        errorMessage =
+            'This email address is already registered. Please log in instead.';
       }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMessage),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text(errorMessage), backgroundColor: Colors.red),
         );
       }
     } catch (e) {
@@ -675,10 +959,14 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
           builder: (context, setDialogState) {
             return AlertDialog(
               backgroundColor: theme.dialogBackgroundColor ?? Colors.grey[900],
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
               title: Text(
                 'Verify Email',
-                style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -686,7 +974,9 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
                 children: [
                   Text(
                     'We sent a verification code to $email. Please enter it below to confirm your account.',
-                    style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
                   ),
                   const SizedBox(height: 20),
                   TextField(
@@ -700,8 +990,52 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
                       counterText: '',
                       filled: true,
                       fillColor: theme.cardTheme.color?.withOpacity(0.5),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
                       prefixIcon: const Icon(Icons.pin_outlined),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: isVerifying
+                          ? null
+                          : () async {
+                              try {
+                                await Supabase.instance.client.auth.resend(
+                                  type: OtpType.signup,
+                                  email: email,
+                                );
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'A new verification code has been sent!',
+                                      ),
+                                      backgroundColor: Colors.green,
+                                    ),
+                                  );
+                                }
+                              } catch (e) {
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Failed to resend code. Please try again.',
+                                      ),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                }
+                              }
+                            },
+                      child: Text(
+                        'Resend Code',
+                        style: TextStyle(color: colorScheme.primary),
+                      ),
                     ),
                   ),
                 ],
@@ -727,24 +1061,32 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
                           final otp = otpController.text.trim();
                           if (otp.isEmpty) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Please enter the verification code')),
+                              const SnackBar(
+                                content: Text(
+                                  'Please enter the verification code',
+                                ),
+                              ),
                             );
                             return;
                           }
 
                           setDialogState(() => isVerifying = true);
                           try {
-                            final response = await Supabase.instance.client.auth.verifyOTP(
-                              email: email,
-                              token: otp,
-                              type: OtpType.signup,
-                            );
+                            final response = await Supabase.instance.client.auth
+                                .verifyOTP(
+                                  email: email,
+                                  token: otp,
+                                  type: OtpType.signup,
+                                );
 
                             final user = response.user;
                             final session = response.session;
 
                             if (user != null && session != null) {
-                              await UserSessionManager.loginWithEmail(user.id, user.email!);
+                              await UserSessionManager.loginWithEmail(
+                                user.id,
+                                user.email!,
+                              );
 
                               // Trigger sync since user is now logged in
                               SyncManager.instance.resetUserCreated();
@@ -753,17 +1095,40 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
                               if (mounted) {
                                 Navigator.pop(context); // Close dialog
                                 Navigator.of(context).pushReplacement(
-                                  MaterialPageRoute(builder: (_) => const FolderScreen()),
+                                  MaterialPageRoute(
+                                    builder: (_) => const FolderScreen(),
+                                  ),
                                 );
                               }
                             } else {
                               throw 'Verification failed. Please try again.';
                             }
+                          } on AuthException catch (e) {
+                            if (mounted) {
+                              String errorMessage = e.message;
+                              if (errorMessage.toLowerCase().contains(
+                                    'expired',
+                                  ) ||
+                                  errorMessage.toLowerCase().contains(
+                                    'invalid',
+                                  )) {
+                                errorMessage =
+                                    'The verification code has expired or is invalid. Please request a new one.';
+                              }
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(errorMessage),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
                           } catch (e) {
                             if (mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('Verification failed: $e'),
+                                const SnackBar(
+                                  content: Text(
+                                    'An unexpected error occurred. Please try again.',
+                                  ),
                                   backgroundColor: Colors.red,
                                 ),
                               );
@@ -775,10 +1140,16 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: colorScheme.primary,
                     foregroundColor: colorScheme.onPrimary,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                   child: isVerifying
-                      ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                      ? const SizedBox(
+                          height: 18,
+                          width: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
                       : const Text('Verify'),
                 ),
               ],
@@ -789,4 +1160,3 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
     );
   }
 }
-

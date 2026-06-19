@@ -26,7 +26,7 @@ class GlassContainer extends StatelessWidget {
     this.borderColor,
     this.blur = 10,
     this.enableBlur = true,
-    this.boxShadow, 
+    this.boxShadow,
   });
 
   @override
@@ -35,24 +35,30 @@ class GlassContainer extends StatelessWidget {
     final radius = borderRadius ?? BorderRadius.circular(16);
 
     // Dynamic defaults based on theme
-    final defaultColor = isDark 
-        ? const Color(0xFF0F172A).withOpacity(0.6)  // Slate 900 @ 60%
-        : const Color(0xFFFFFFFF).withOpacity(0.65); // White @ 65% (More transparent for glass effect)
+    final defaultColor = isDark
+        ? const Color(0xFF0F172A).withOpacity(0.6) // Slate 900 @ 60%
+        : const Color(0xFFFFFFFF).withOpacity(
+            0.65,
+          ); // White @ 65% (More transparent for glass effect)
 
     final defaultBorder = isDark
         ? Colors.white.withOpacity(0.08)
-        : Colors.black.withOpacity(0.08); // Contrast increased for light mode (0.05 -> 0.08)
+        : Colors.black.withOpacity(
+            0.08,
+          ); // Contrast increased for light mode (0.05 -> 0.08)
 
     // Default shadow only for light mode if not provided
-    final defaultShadow = boxShadow ?? (isDark 
-        ? [] 
-        : [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ]);
+    final defaultShadow =
+        boxShadow ??
+        (isDark
+            ? []
+            : [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ]);
 
     // If blur is disabled, return a simple container
     if (!enableBlur) {
@@ -63,10 +69,7 @@ class GlassContainer extends StatelessWidget {
         padding: padding ?? const EdgeInsets.all(16),
         decoration: BoxDecoration(
           borderRadius: radius,
-          border: Border.all(
-            color: borderColor ?? defaultBorder,
-            width: 1,
-          ),
+          border: Border.all(color: borderColor ?? defaultBorder, width: 1),
           color: color ?? defaultColor,
           boxShadow: defaultShadow,
         ),
@@ -80,10 +83,7 @@ class GlassContainer extends StatelessWidget {
       margin: margin,
       decoration: BoxDecoration(
         borderRadius: radius,
-        border: Border.all(
-          color: borderColor ?? defaultBorder,
-          width: 1,
-        ),
+        border: Border.all(color: borderColor ?? defaultBorder, width: 1),
         color: color ?? defaultColor,
         boxShadow: defaultShadow,
       ),

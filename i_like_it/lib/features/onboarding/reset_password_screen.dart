@@ -14,7 +14,7 @@ class ResetPasswordScreen extends StatefulWidget {
 class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  
+
   bool _isLoading = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
@@ -35,7 +35,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
               children: [
                 GlassContainer(
                   borderRadius: BorderRadius.circular(100),
-                  height: 100, 
+                  height: 100,
                   width: 100,
                   padding: const EdgeInsets.all(20),
                   child: Icon(
@@ -83,10 +83,14 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                           ),
                           suffixIcon: IconButton(
                             icon: Icon(
-                              _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                              _obscurePassword
+                                  ? Icons.visibility_off
+                                  : Icons.visibility,
                               color: colorScheme.onSurfaceVariant,
                             ),
-                            onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                            onPressed: () => setState(
+                              () => _obscurePassword = !_obscurePassword,
+                            ),
                           ),
                         ),
                       ),
@@ -106,10 +110,15 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                           ),
                           suffixIcon: IconButton(
                             icon: Icon(
-                              _obscureConfirmPassword ? Icons.visibility_off : Icons.visibility,
+                              _obscureConfirmPassword
+                                  ? Icons.visibility_off
+                                  : Icons.visibility,
                               color: colorScheme.onSurfaceVariant,
                             ),
-                            onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
+                            onPressed: () => setState(
+                              () => _obscureConfirmPassword =
+                                  !_obscureConfirmPassword,
+                            ),
                           ),
                         ),
                       ),
@@ -124,19 +133,19 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        child: _isLoading 
-                          ? SizedBox(
-                              height: 20, 
-                              width: 20, 
-                              child: CircularProgressIndicator(
-                                color: colorScheme.onPrimary, 
-                                strokeWidth: 2,
+                        child: _isLoading
+                            ? SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  color: colorScheme.onPrimary,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Text(
+                                'Update Password',
+                                style: TextStyle(fontWeight: FontWeight.bold),
                               ),
-                            ) 
-                          : const Text(
-                              'Update Password', 
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
                       ),
                     ],
                   ),
@@ -161,9 +170,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     }
 
     if (password != confirmPassword) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Passwords do not match')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Passwords do not match')));
       return;
     }
 
@@ -178,11 +187,13 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Password updated successfully! Please login with your new password.'),
+            content: Text(
+              'Password updated successfully! Please login with your new password.',
+            ),
             backgroundColor: Colors.green,
           ),
         );
-        
+
         // Redirect to Login page
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (_) => const InitialSetupScreen()),
@@ -191,18 +202,21 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       }
     } on AuthException catch (e) {
       String errorMessage = e.message;
-      if (e.code == 'same_password' || e.message.toLowerCase().contains('same_password') || e.message.toLowerCase().contains('different from the old')) {
-        errorMessage = 'Your new password must be different from your old password.';
-      } else if (e.message.toLowerCase().contains('session_expired') || e.message.toLowerCase().contains('flow state not found') || e.message.toLowerCase().contains('invalid ticket')) {
-        errorMessage = 'Your password reset link is invalid or has expired. Please request a new one.';
+      if (e.code == 'same_password' ||
+          e.message.toLowerCase().contains('same_password') ||
+          e.message.toLowerCase().contains('different from the old')) {
+        errorMessage =
+            'Your new password must be different from your old password.';
+      } else if (e.message.toLowerCase().contains('session_expired') ||
+          e.message.toLowerCase().contains('flow state not found') ||
+          e.message.toLowerCase().contains('invalid ticket')) {
+        errorMessage =
+            'Your password reset link is invalid or has expired. Please request a new one.';
       }
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMessage),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text(errorMessage), backgroundColor: Colors.red),
         );
       }
     } catch (e) {

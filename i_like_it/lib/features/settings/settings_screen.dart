@@ -37,7 +37,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (mounted && role == 'admin') {
         setState(() => _isAdmin = true);
       }
-        } catch (_) {}
+    } catch (_) {}
   }
 
   @override
@@ -52,7 +52,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: true,
-        titleTextStyle: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+        titleTextStyle: theme.textTheme.headlineSmall?.copyWith(
+          fontWeight: FontWeight.bold,
+        ),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
@@ -60,11 +62,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _buildSectionHeader('Appearance'),
           const SizedBox(height: 12),
           _buildThemeSelector(),
-          
+
           const SizedBox(height: 32),
           _buildSectionHeader('Account'),
           const SizedBox(height: 12),
-          
+
           _buildSettingsTile(
             icon: Icons.person,
             title: 'Account Settings',
@@ -72,11 +74,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const RecoverySettingsScreen()),
+                MaterialPageRoute(
+                  builder: (_) => const RecoverySettingsScreen(),
+                ),
               );
             },
           ),
-          
+
           if (_isAdmin) ...[
             const SizedBox(height: 12),
             _buildSettingsTile(
@@ -92,7 +96,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               },
             ),
           ],
-          
+
           const SizedBox(height: 12),
           _buildSettingsTile(
             icon: Icons.logout,
@@ -102,7 +106,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             textColor: colorScheme.error,
             onTap: _handleLogout,
           ),
-          
+
           const SizedBox(height: 48),
           Center(
             child: Text(
@@ -143,9 +147,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
           child: Column(
             children: [
               _buildRadioTile('System Default', ThemeMode.system, currentMode),
-              Divider(height: 1, color: Theme.of(context).dividerColor.withOpacity(0.2)),
+              Divider(
+                height: 1,
+                color: Theme.of(context).dividerColor.withOpacity(0.2),
+              ),
               _buildRadioTile('Light Mode', ThemeMode.light, currentMode),
-              Divider(height: 1, color: Theme.of(context).dividerColor.withOpacity(0.2)),
+              Divider(
+                height: 1,
+                color: Theme.of(context).dividerColor.withOpacity(0.2),
+              ),
               _buildRadioTile('Dark Mode', ThemeMode.dark, currentMode),
             ],
           ),
@@ -157,7 +167,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _buildRadioTile(String title, ThemeMode mode, ThemeMode current) {
     final isSelected = mode == current;
     final theme = Theme.of(context);
-    
+
     return InkWell(
       onTap: () => ThemeManager.instance.setThemeMode(mode),
       child: Padding(
@@ -169,12 +179,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 title,
                 style: theme.textTheme.bodyLarge?.copyWith(
                   fontWeight: isSelected ? FontWeight.w700 : FontWeight.w400,
-                  color: isSelected ? theme.colorScheme.primary : theme.colorScheme.onSurface,
+                  color: isSelected
+                      ? theme.colorScheme.primary
+                      : theme.colorScheme.onSurface,
                 ),
               ),
             ),
             if (isSelected)
-              Icon(Icons.check_circle, color: theme.colorScheme.primary, size: 22),
+              Icon(
+                Icons.check_circle,
+                color: theme.colorScheme.primary,
+                size: 22,
+              ),
           ],
         ),
       ),
@@ -190,7 +206,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     Color? textColor,
   }) {
     final theme = Theme.of(context);
-    
+
     return GlassContainer(
       padding: EdgeInsets.zero,
       enableBlur: false, // Optimize performance
@@ -207,12 +223,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: (iconColor ?? theme.colorScheme.onSurface).withOpacity(0.1),
+                    color: (iconColor ?? theme.colorScheme.onSurface)
+                        .withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
-                    icon, 
-                    color: iconColor ?? theme.colorScheme.onSurface, 
+                    icon,
+                    color: iconColor ?? theme.colorScheme.onSurface,
                     size: 24,
                   ),
                 ),
@@ -233,7 +250,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         Text(
                           subtitle,
                           style: theme.textTheme.bodySmall?.copyWith(
-                             color: theme.colorScheme.onSurfaceVariant,
+                            color: theme.colorScheme.onSurfaceVariant,
                           ),
                         ),
                       ],
@@ -241,7 +258,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ),
                 Icon(
-                  Icons.chevron_right_rounded, 
+                  Icons.chevron_right_rounded,
                   color: theme.colorScheme.onSurfaceVariant.withOpacity(0.5),
                   size: 24,
                 ),
@@ -283,7 +300,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       } catch (_) {}
       await UserSessionManager.clearSession();
       await DatabaseHelper.instance.clearAllData();
-      
+
       if (mounted) {
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (_) => const InitialSetupScreen()),

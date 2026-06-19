@@ -5,10 +5,7 @@ import 'package:flutter_native_splash/flutter_native_splash.dart';
 class CustomSplashScreen extends StatefulWidget {
   final VoidCallback onInitializationComplete;
 
-  const CustomSplashScreen({
-    super.key,
-    required this.onInitializationComplete,
-  });
+  const CustomSplashScreen({super.key, required this.onInitializationComplete});
 
   @override
   State<CustomSplashScreen> createState() => _CustomSplashScreenState();
@@ -18,7 +15,7 @@ class _CustomSplashScreenState extends State<CustomSplashScreen> {
   @override
   void initState() {
     super.initState();
-    
+
     // Remove native splash screen as soon as the first Flutter frame is painted
     WidgetsBinding.instance.addPostFrameCallback((_) {
       FlutterNativeSplash.remove();
@@ -40,10 +37,7 @@ class _CustomSplashScreenState extends State<CustomSplashScreen> {
         children: [
           // Fullscreen background image
           Positioned.fill(
-            child: Image.asset(
-              'assets/flutter_splash.png',
-              fit: BoxFit.cover,
-            ),
+            child: Image.asset('assets/flutter_splash.png', fit: BoxFit.cover),
           ),
           // Animated progress indicator and complete text overlay (transparent background)
           Positioned(
@@ -128,7 +122,9 @@ class _AnimatedLoadingTextState extends State<AnimatedLoadingText> {
           // to prevent text shift/jumping during dot count updates
           TextSpan(
             text: '$dots$paddingDots',
-            style: const TextStyle(fontFamily: 'Courier'), // Monospace font for exact padding alignment
+            style: const TextStyle(
+              fontFamily: 'Courier',
+            ), // Monospace font for exact padding alignment
           ),
         ],
       ),

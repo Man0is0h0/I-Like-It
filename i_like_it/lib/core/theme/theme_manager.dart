@@ -9,7 +9,9 @@ class ThemeManager {
   final _storage = const FlutterSecureStorage();
   static const _keyTheme = 'theme_mode';
 
-  final ValueNotifier<ThemeMode> themeModeNotifier = ValueNotifier(ThemeMode.system);
+  final ValueNotifier<ThemeMode> themeModeNotifier = ValueNotifier(
+    ThemeMode.system,
+  );
 
   /// Initialize and load saved theme
   Future<void> initialize() async {

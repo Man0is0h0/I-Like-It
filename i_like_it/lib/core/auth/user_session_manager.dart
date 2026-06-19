@@ -3,8 +3,9 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 class UserSessionManager {
   static const _storage = FlutterSecureStorage();
   static const _keyUserId = 'user_id';
-  static const _keyEmail = 'email'; 
-  static const _keyIsBackedUp = 'is_backed_up'; // To track if user is fully logged in
+  static const _keyEmail = 'email';
+  static const _keyIsBackedUp =
+      'is_backed_up'; // To track if user is fully logged in
 
   static String? _currentUserId;
   static String? _currentEmail;
@@ -16,7 +17,7 @@ class UserSessionManager {
   static Future<void> initialize() async {
     try {
       String? storedId = await _storage.read(key: _keyUserId);
-      
+
       if (storedId != null) {
         _currentUserId = storedId;
         _currentEmail = await _storage.read(key: _keyEmail);
@@ -39,9 +40,9 @@ class UserSessionManager {
   /// Login: Save the Session
   static Future<void> loginWithEmail(String newUserId, String newEmail) async {
     await _storage.write(key: _keyUserId, value: newUserId);
-    await _storage.write(key: _keyEmail, value: newEmail); 
+    await _storage.write(key: _keyEmail, value: newEmail);
     await _storage.write(key: _keyIsBackedUp, value: 'true'); // Is logged in
-    
+
     _currentUserId = newUserId;
     _currentEmail = newEmail;
   }
@@ -51,7 +52,7 @@ class UserSessionManager {
     await _storage.delete(key: _keyUserId);
     await _storage.delete(key: _keyEmail);
     await _storage.delete(key: _keyIsBackedUp);
-    
+
     _currentUserId = null;
     _currentEmail = null;
     print("UserSessionManager: Session cleared.");

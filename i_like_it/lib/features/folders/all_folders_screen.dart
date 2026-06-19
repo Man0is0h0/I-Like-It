@@ -30,7 +30,9 @@ class _AllFoldersScreenState extends State<AllFoldersScreen> {
     if (mounted) {
       setState(() {
         _folders = folders.map((e) => Folder.fromMap(e)).toList();
-        _folders.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+        _folders.sort(
+          (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+        );
         _isLoading = false;
       });
     }
@@ -41,11 +43,11 @@ class _AllFoldersScreenState extends State<AllFoldersScreen> {
       context: context,
       builder: (context) => const AddFolderDialog(),
     );
-    
+
     if (result != null) {
       _loadFolders();
       SyncManager.instance.sync();
-      
+
       if (result is Folder && mounted) {
         await SuccessConfettiPopup.show(
           context: context,
@@ -64,7 +66,9 @@ class _AllFoldersScreenState extends State<AllFoldersScreen> {
       appBar: AppBar(
         title: Text(
           'All Folders',
-          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
         ),
         centerTitle: true,
         backgroundColor: Colors.transparent,
@@ -73,24 +77,23 @@ class _AllFoldersScreenState extends State<AllFoldersScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _folders.isEmpty
-              ? Center(
-                  child: Text(
-                    'No folders yet',
-                    style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-                  ),
-                )
-              : ListView.separated(
-                  padding: const EdgeInsets.all(16).copyWith(bottom: 100),
-                  itemCount: _folders.length,
-                  separatorBuilder: (context, index) => const SizedBox(height: 12),
-                  itemBuilder: (context, index) {
-                    final folder = _folders[index];
-                    return FolderCard(
-                      folder: folder,
-                      onRefresh: _loadFolders,
-                    );
-                  },
+          ? Center(
+              child: Text(
+                'No folders yet',
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
                 ),
+              ),
+            )
+          : ListView.separated(
+              padding: const EdgeInsets.all(16).copyWith(bottom: 100),
+              itemCount: _folders.length,
+              separatorBuilder: (context, index) => const SizedBox(height: 12),
+              itemBuilder: (context, index) {
+                final folder = _folders[index];
+                return FolderCard(folder: folder, onRefresh: _loadFolders);
+              },
+            ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: FloatingActionButton(
         onPressed: _showAddFolderDialog,

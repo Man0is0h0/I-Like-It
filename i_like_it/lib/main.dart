@@ -10,7 +10,6 @@ import 'features/folders/folder_screen.dart';
 import 'features/onboarding/reset_password_screen.dart';
 import 'features/share/share_save_screen.dart';
 
-
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/sync/remote_datasource.dart';
 import 'core/sync/sync_manager.dart';
@@ -21,7 +20,7 @@ import 'config/app_config.dart';
 Future<void> main() async {
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
-  
+
   // Initialize Configuration
   try {
     await AppConfig.instance.initialize();
@@ -29,28 +28,29 @@ Future<void> main() async {
     print("Configuration Error: $e");
     // In production, you might want to show a friendly error screen here
   }
-  
+
   // Initialize User Session FIRST
   await UserSessionManager.initialize();
   // Initialize Theme Manager
   await ThemeManager.instance.initialize();
-  
+
   final isBackedUp = await UserSessionManager.isBackedUp();
 
-  if (AppConfig.instance.supabaseUrl.isNotEmpty && AppConfig.instance.supabaseAnonKey.isNotEmpty) {
-      await Supabase.initialize(
-        url: AppConfig.instance.supabaseUrl,
-        anonKey: AppConfig.instance.supabaseAnonKey,
-      );
-      
-      final remoteDataSource = RemoteDataSource(Supabase.instance.client);
-      // Initialize Sync Manager AFTER User Session is ready
-      SyncManager.instance.initialize(remoteDataSource);
+  if (AppConfig.instance.supabaseUrl.isNotEmpty &&
+      AppConfig.instance.supabaseAnonKey.isNotEmpty) {
+    await Supabase.initialize(
+      url: AppConfig.instance.supabaseUrl,
+      anonKey: AppConfig.instance.supabaseAnonKey,
+    );
+
+    final remoteDataSource = RemoteDataSource(Supabase.instance.client);
+    // Initialize Sync Manager AFTER User Session is ready
+    SyncManager.instance.initialize(remoteDataSource);
   }
-  
+
   // Initialize AI
   FolderClassificationService.instance.initialize(); // New Robust Service
-  
+
   runApp(ILikeItApp(isBackedUp: isBackedUp));
 }
 
@@ -74,7 +74,8 @@ class _ILikeItAppState extends State<ILikeItApp> {
     super.initState();
 
     // Listen to Auth state changes for password recovery deep link
-    if (AppConfig.instance.supabaseUrl.isNotEmpty && AppConfig.instance.supabaseAnonKey.isNotEmpty) {
+    if (AppConfig.instance.supabaseUrl.isNotEmpty &&
+        AppConfig.instance.supabaseAnonKey.isNotEmpty) {
       Supabase.instance.client.auth.onAuthStateChange.listen((data) {
         final AuthChangeEvent event = data.event;
         if (event == AuthChangeEvent.passwordRecovery) {
@@ -104,7 +105,9 @@ class _ILikeItAppState extends State<ILikeItApp> {
 
   Future<void> _getInitialSharedText() async {
     try {
-      final String? initialText = await _channel.invokeMethod<String>('getSharedText');
+      final String? initialText = await _channel.invokeMethod<String>(
+        'getSharedText',
+      );
       if (initialText != null) {
         setState(() {
           _sharedLink = initialText;
@@ -128,7 +131,8 @@ class _ILikeItAppState extends State<ILikeItApp> {
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,
           themeMode: themeMode,
-          themeAnimationDuration: Duration.zero, // Instant transition as requested
+          themeAnimationDuration:
+              Duration.zero, // Instant transition as requested
           themeAnimationCurve: Curves.linear,
           home: _showSplash
               ? CustomSplashScreen(
@@ -139,13 +143,13 @@ class _ILikeItAppState extends State<ILikeItApp> {
                   },
                 )
               : (_sharedLink != null
-                  ? ShareSaveScreen(
-                      sharedLink: _sharedLink!,
-                      onLinkSaved: _clearSharedLink,
-                    )
-                  : (widget.isBackedUp
-                      ? const FolderScreen()
-                      : const InitialSetupScreen())),
+                    ? ShareSaveScreen(
+                        sharedLink: _sharedLink!,
+                        onLinkSaved: _clearSharedLink,
+                      )
+                    : (widget.isBackedUp
+                          ? const FolderScreen()
+                          : const InitialSetupScreen())),
         );
       },
     );

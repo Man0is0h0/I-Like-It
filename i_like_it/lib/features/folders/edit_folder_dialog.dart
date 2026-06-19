@@ -94,73 +94,73 @@ class _EditFolderDialogState extends State<EditFolderDialog> {
           mainAxisSize: MainAxisSize.min,
           children: [
             GestureDetector(
-            onTap: _isSaving ? null : _showIconPicker,
-            child: Container(
-              decoration: BoxDecoration(
-                border: Border.all(color: AppTheme.borderColor),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  Icon(
-                    _parseIcon(_selectedIcon),
-                    size: 48,
-                    color: AppTheme.primaryColor,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Tap to change icon',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Theme.of(context).brightness == Brightness.dark 
-                          ? Colors.white70 
-                          : Colors.grey,
+              onTap: _isSaving ? null : _showIconPicker,
+              child: Container(
+                decoration: BoxDecoration(
+                  border: Border.all(color: AppTheme.borderColor),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    Icon(
+                      _parseIcon(_selectedIcon),
+                      size: 48,
+                      color: AppTheme.primaryColor,
                     ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: _controller,
-            autofocus: true,
-            textInputAction: TextInputAction.done,
-            style: Theme.of(context).textTheme.bodyMedium,
-            onChanged: (value) {
-              if (_errorText != null) {
-                setState(() => _errorText = null);
-              }
-            },
-            onSubmitted: (_) => _saveFolder(),
-            decoration: InputDecoration(
-              hintText: 'Folder name',
-              errorText: _errorText,
-              errorMaxLines: 3,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppTheme.borderColor),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppTheme.borderColor),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(
-                  color: AppTheme.primaryColor,
-                  width: 2,
+                    const SizedBox(height: 8),
+                    Text(
+                      'Tap to change icon',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white70
+                            : Colors.grey,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 14,
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _controller,
+              autofocus: true,
+              textInputAction: TextInputAction.done,
+              style: Theme.of(context).textTheme.bodyMedium,
+              onChanged: (value) {
+                if (_errorText != null) {
+                  setState(() => _errorText = null);
+                }
+              },
+              onSubmitted: (_) => _saveFolder(),
+              decoration: InputDecoration(
+                hintText: 'Folder name',
+                errorText: _errorText,
+                errorMaxLines: 3,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppTheme.borderColor),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppTheme.borderColor),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(
+                    color: AppTheme.primaryColor,
+                    width: 2,
+                  ),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
               ),
             ),
-          ),
-        ],
-      ),
+          ],
+        ),
       ),
       actions: [
         TextButton(

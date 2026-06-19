@@ -29,7 +29,7 @@ class GradientScaffold extends StatelessWidget {
       bottomNavigationBar: bottomNavigationBar,
       body: GradientBackground(
         child: SafeArea(
-          top: !extendBodyBehindAppBar, 
+          top: !extendBodyBehindAppBar,
           bottom: false,
           child: body,
         ),

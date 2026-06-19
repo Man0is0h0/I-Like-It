@@ -70,9 +70,10 @@ class _EditLinkDialogState extends State<EditLinkDialog> {
           children: [
             Text(
               'Title',
-              style: (Theme.of(context).textTheme.bodyMedium ?? AppTheme.bodyMedium).copyWith(
-                fontWeight: FontWeight.w600,
-              ),
+              style:
+                  (Theme.of(context).textTheme.bodyMedium ??
+                          AppTheme.bodyMedium)
+                      .copyWith(fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 8),
             TextField(
@@ -105,9 +106,10 @@ class _EditLinkDialogState extends State<EditLinkDialog> {
             const SizedBox(height: 16),
             Text(
               'Notes',
-              style: (Theme.of(context).textTheme.bodyMedium ?? AppTheme.bodyMedium).copyWith(
-                fontWeight: FontWeight.w600,
-              ),
+              style:
+                  (Theme.of(context).textTheme.bodyMedium ??
+                          AppTheme.bodyMedium)
+                      .copyWith(fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 8),
             TextField(

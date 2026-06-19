@@ -12,20 +12,21 @@ class RecoverySettingsScreen extends StatefulWidget {
 
 class _RecoverySettingsScreenState extends State<RecoverySettingsScreen> {
   final _emailController = TextEditingController();
-  
+
   bool _isLoadingEmail = true;
   String? _currentEmail;
   bool _isEditing = false;
-  
+
   @override
   void initState() {
     super.initState();
     _loadUserEmail();
   }
-  
+
   Future<void> _loadUserEmail() async {
     try {
-      final email = await SyncManager.instance.remoteDataSource.fetchUserEmail();
+      final email = await SyncManager.instance.remoteDataSource
+          .fetchUserEmail();
       if (mounted) {
         setState(() {
           _currentEmail = email;
@@ -51,7 +52,10 @@ class _RecoverySettingsScreenState extends State<RecoverySettingsScreen> {
 
     return GradientScaffold(
       appBar: AppBar(
-        title: Text('Account Settings', style: theme.textTheme.headlineMedium?.copyWith(fontSize: 20)),
+        title: Text(
+          'Account Settings',
+          style: theme.textTheme.headlineMedium?.copyWith(fontSize: 20),
+        ),
         backgroundColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
@@ -61,21 +65,21 @@ class _RecoverySettingsScreenState extends State<RecoverySettingsScreen> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-             const SizedBox(height: 24),
-             _buildSection(
-               context,
-               title: 'Your Account Email',
-               description: 'The email address associated with your account.',
-               child: _isLoadingEmail 
+            const SizedBox(height: 24),
+            _buildSection(
+              context,
+              title: 'Your Account Email',
+              description: 'The email address associated with your account.',
+              child: _isLoadingEmail
                   ? const Center(child: CircularProgressIndicator())
                   : _buildEmailContent(theme, colorScheme),
-             ),
+            ),
           ],
         ),
       ),
     );
   }
-  
+
   Widget _buildEmailContent(ThemeData theme, ColorScheme colorScheme) {
     if (!_isEditing && _currentEmail != null) {
       return GlassContainer(
@@ -91,13 +95,19 @@ class _RecoverySettingsScreenState extends State<RecoverySettingsScreen> {
                     color: colorScheme.primary.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Icon(Icons.email, color: colorScheme.primary, size: 20),
+                  child: Icon(
+                    Icons.email,
+                    color: colorScheme.primary,
+                    size: 20,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     _currentEmail!,
-                    style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
                 const Icon(Icons.check_circle, color: Colors.green, size: 20),
@@ -108,15 +118,17 @@ class _RecoverySettingsScreenState extends State<RecoverySettingsScreen> {
               width: double.infinity,
               child: OutlinedButton(
                 onPressed: () {
-                   setState(() {
-                     _isEditing = true;
-                     _emailController.text = _currentEmail!;
-                   });
+                  setState(() {
+                    _isEditing = true;
+                    _emailController.text = _currentEmail!;
+                  });
                 },
                 style: OutlinedButton.styleFrom(
                   side: BorderSide(color: colorScheme.primary.withOpacity(0.5)),
                   padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
                 child: const Text('Change Email'),
               ),
@@ -125,7 +137,7 @@ class _RecoverySettingsScreenState extends State<RecoverySettingsScreen> {
         ),
       );
     }
-    
+
     return GlassContainer(
       padding: const EdgeInsets.all(16),
       borderRadius: BorderRadius.circular(16),
@@ -140,8 +152,14 @@ class _RecoverySettingsScreenState extends State<RecoverySettingsScreen> {
               hintText: 'you@example.com',
               filled: true,
               fillColor: theme.cardTheme.color?.withOpacity(0.5),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 14,
+              ),
             ),
           ),
           const SizedBox(height: 16),
@@ -151,28 +169,36 @@ class _RecoverySettingsScreenState extends State<RecoverySettingsScreen> {
                 child: ElevatedButton(
                   onPressed: _saveEmail,
                   style: ElevatedButton.styleFrom(
-                     backgroundColor: colorScheme.primary,
-                     foregroundColor: colorScheme.onPrimary,
-                     padding: const EdgeInsets.symmetric(vertical: 14),
-                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    backgroundColor: colorScheme.primary,
+                    foregroundColor: colorScheme.onPrimary,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
-                  child: const Text('Save Email', style: TextStyle(fontWeight: FontWeight.bold)),
+                  child: const Text(
+                    'Save Email',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                 ),
               ),
               if (_currentEmail != null) ...[
-                 const SizedBox(width: 12),
-                 TextButton(
-                   onPressed: () {
-                     setState(() {
-                        _isEditing = false;
-                     });
-                   },
-                   style: TextButton.styleFrom(
-                     padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-                   ),
-                   child: const Text('Cancel'),
-                 ),
-              ]
+                const SizedBox(width: 12),
+                TextButton(
+                  onPressed: () {
+                    setState(() {
+                      _isEditing = false;
+                    });
+                  },
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 14,
+                      horizontal: 16,
+                    ),
+                  ),
+                  child: const Text('Cancel'),
+                ),
+              ],
             ],
           ),
         ],
@@ -180,16 +206,31 @@ class _RecoverySettingsScreenState extends State<RecoverySettingsScreen> {
     );
   }
 
-  Widget _buildSection(BuildContext context, {required String title, required String description, required Widget child}) {
+  Widget _buildSection(
+    BuildContext context, {
+    required String title,
+    required String description,
+    required Widget child,
+  }) {
     final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+          Text(
+            title,
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           const SizedBox(height: 6),
-          Text(description, style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+          Text(
+            description,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
           const SizedBox(height: 16),
           child,
         ],
@@ -200,29 +241,29 @@ class _RecoverySettingsScreenState extends State<RecoverySettingsScreen> {
   Future<void> _saveEmail() async {
     final email = _emailController.text.trim();
     if (email.isEmpty || !email.contains('@')) {
-       ScaffoldMessenger.of(context).showSnackBar(
-         const SnackBar(content: Text('Please enter a valid email')),
-       );
-       return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a valid email')),
+      );
+      return;
     }
-    
+
     try {
       await SyncManager.instance.remoteDataSource.updateUserEmail(email);
       if (mounted) {
-         setState(() {
-           _currentEmail = email;
-           _isEditing = false;
-         });
-         ScaffoldMessenger.of(context).showSnackBar(
-           const SnackBar(content: Text('Email saved successfully')),
-         );
-         FocusScope.of(context).unfocus();
+        setState(() {
+          _currentEmail = email;
+          _isEditing = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Email saved successfully')),
+        );
+        FocusScope.of(context).unfocus();
       }
     } catch (e) {
       if (mounted) {
-         ScaffoldMessenger.of(context).showSnackBar(
-           SnackBar(content: Text('Error saving email: $e')),
-         );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error saving email: $e')));
       }
     }
   }

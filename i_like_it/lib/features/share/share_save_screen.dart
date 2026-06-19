@@ -9,6 +9,7 @@ import '../../theme/app_theme.dart';
 import '../links/folder_suggestion_dialog.dart';
 import '../../core/widgets/gradient_scaffold.dart'; // New
 import '../onboarding/initial_setup_screen.dart';
+import '../../core/sync/sync_manager.dart';
 
 class ShareSaveScreen extends StatefulWidget {
   final String sharedLink;
@@ -47,15 +48,14 @@ class _ShareSaveScreenState extends State<ShareSaveScreen> {
   }
 
   Future<void> _navigateToLogin() async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const InitialSetupScreen()),
-    );
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const InitialSetupScreen()));
     // After returning from login screen, re-check login status
     _checkLoginAndProceed();
   }
 
   Future<void> _loadFoldersAndShowSuggestions() async {
-
     // Check if we extracted a valid URL (should start with http/https)
     if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
       print('[SHARE_SCREEN] No valid URL found in shared text: $cleanUrl');
@@ -67,10 +67,10 @@ class _ShareSaveScreenState extends State<ShareSaveScreen> {
           ),
         );
       }
-      
+
       // Wait for the snackbar to be readable, then close the app
       await Future.delayed(const Duration(seconds: 2));
-      
+
       const platform = MethodChannel('shared_link');
       try {
         await platform.invokeMethod('closeApp');
@@ -82,7 +82,11 @@ class _ShareSaveScreenState extends State<ShareSaveScreen> {
 
     print('[SHARE_SCREEN] Loading folders...');
     final db = await DatabaseHelper.instance.database;
-    final result = await db.query('folders', orderBy: 'created_at DESC');
+    final result = await db.query(
+      'folders',
+      where: 'is_deleted = 0',
+      orderBy: 'created_at DESC',
+    );
 
     if (!mounted) return;
 
@@ -109,12 +113,17 @@ class _ShareSaveScreenState extends State<ShareSaveScreen> {
       String sharedText = widget.sharedLink.replaceAll(cleanUrl, '').trim();
       if (sharedText.isNotEmpty) {
         // Clean up common share prefixes
-        sharedText = sharedText.replaceAll(RegExp(r'^Check this out:\s*', caseSensitive: false), '');
-        
+        sharedText = sharedText.replaceAll(
+          RegExp(r'^Check this out:\s*', caseSensitive: false),
+          '',
+        );
+
         // Use shared text if it's substantial, or if the extracted title is generic
         if (sharedText.length > 3) {
           title = sharedText;
-        } else if (title.isEmpty || title.contains('Link') || title == 'YouTube Video') {
+        } else if (title.isEmpty ||
+            title.contains('Link') ||
+            title == 'YouTube Video') {
           title = sharedText.isNotEmpty ? sharedText : title;
         }
       }
@@ -124,7 +133,9 @@ class _ShareSaveScreenState extends State<ShareSaveScreen> {
         return;
       }
 
-      print('[SHARE_SCREEN] Showing suggestion dialog with ${folders.length} folders');
+      print(
+        '[SHARE_SCREEN] Showing suggestion dialog with ${folders.length} folders',
+      );
       // Show folder suggestion dialog
       final selectedFolder = await showDialog<Folder>(
         context: context,
@@ -155,33 +166,30 @@ class _ShareSaveScreenState extends State<ShareSaveScreen> {
       // Save link to selected folder
       // Show edit dialog
       if (!mounted) return;
-      
+
       final result = await showDialog<Map<String, String>>(
         context: context,
         barrierDismissible: false,
-        builder: (_) => _EditLinkDialog(
-          title: title,
-          url: cleanUrl,
-        ),
+        builder: (_) => _EditLinkDialog(title: title, url: cleanUrl),
       );
 
       if (result == null) {
-         print('[SHARE_SCREEN] Edit dialog cancelled');
-         // If cancelled, we arguably should just close the app or return to prev state
-         // For now, let's close the app as this is a "Save" flow interruption
-         const platform = MethodChannel('shared_link');
-         try {
-           await platform.invokeMethod('closeApp');
-         } catch (e) {
-           if (mounted) Navigator.pop(context);
-         }
-         return;
+        print('[SHARE_SCREEN] Edit dialog cancelled');
+        // If cancelled, we arguably should just close the app or return to prev state
+        // For now, let's close the app as this is a "Save" flow interruption
+        const platform = MethodChannel('shared_link');
+        try {
+          await platform.invokeMethod('closeApp');
+        } catch (e) {
+          if (mounted) Navigator.pop(context);
+        }
+        return;
       }
 
       await _saveLinkToFolder(
-        cleanUrl, 
-        selectedFolder, 
-        result['title'] ?? title, 
+        cleanUrl,
+        selectedFolder,
+        result['title'] ?? title,
         description,
         result['note'] ?? '',
         imageUrl,
@@ -210,16 +218,11 @@ class _ShareSaveScreenState extends State<ShareSaveScreen> {
               children: [
                 const Padding(
                   padding: EdgeInsets.all(16),
-                  child: Text(
-                    'Save to folder',
-                    style: AppTheme.heading3,
-                  ),
+                  child: Text('Save to folder', style: AppTheme.heading3),
                 ),
                 Expanded(
                   child: folders.isEmpty
-                      ? const Center(
-                          child: Text('No folders available'),
-                        )
+                      ? const Center(child: Text('No folders available'))
                       : ListView.builder(
                           itemCount: folders.length,
                           itemBuilder: (context, index) {
@@ -235,14 +238,15 @@ class _ShareSaveScreenState extends State<ShareSaveScreen> {
                               ),
                               onTap: () async {
                                 // Show edit dialog even for fallback
-                                final result = await showDialog<Map<String, String>>(
-                                  context: context,
-                                  barrierDismissible: false,
-                                  builder: (_) => _EditLinkDialog(
-                                    title: cleanUrl,
-                                    url: cleanUrl,
-                                  ),
-                                );
+                                final result =
+                                    await showDialog<Map<String, String>>(
+                                      context: context,
+                                      barrierDismissible: false,
+                                      builder: (_) => _EditLinkDialog(
+                                        title: cleanUrl,
+                                        url: cleanUrl,
+                                      ),
+                                    );
 
                                 if (result == null) return;
 
@@ -279,7 +283,9 @@ class _ShareSaveScreenState extends State<ShareSaveScreen> {
     try {
       var normalizedUrl = _normalizeUrlForComparison(url);
 
-      print('[SHARE_SCREEN] Checking duplicate for URL: $normalizedUrl in folder: ${folder.id}');
+      print(
+        '[SHARE_SCREEN] Checking duplicate for URL: $normalizedUrl in folder: ${folder.id}',
+      );
 
       // Check for duplicate link URLs in this folder
       final db = await DatabaseHelper.instance.database;
@@ -291,7 +297,9 @@ class _ShareSaveScreenState extends State<ShareSaveScreen> {
 
       // Check if any existing link has the same base URL
       final isDuplicate = existing.any((link) {
-        final existingNormalized = _normalizeUrlForComparison(link['url'] as String);
+        final existingNormalized = _normalizeUrlForComparison(
+          link['url'] as String,
+        );
         return existingNormalized == normalizedUrl;
       });
 
@@ -299,14 +307,16 @@ class _ShareSaveScreenState extends State<ShareSaveScreen> {
         print('[SHARE_SCREEN] Duplicate detected! Not saving.');
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('This link already exists in this folder')),
+          const SnackBar(
+            content: Text('This link already exists in this folder'),
+          ),
         );
-        
+
         // Wait a moment for SnackBar to be visible, then close the app
         await Future.delayed(const Duration(seconds: 1));
-        
+
         if (!mounted) return;
-        
+
         // Close the app using platform channel to return to caller
         const platform = MethodChannel('shared_link');
         try {
@@ -341,6 +351,19 @@ class _ShareSaveScreenState extends State<ShareSaveScreen> {
 
       print('[SHARE_SCREEN] Saved link to folder ${folder.id}');
 
+      // Force a sync so it's instantly available in Supabase before the app closes
+      print('[SHARE_SCREEN] Triggering cloud push...');
+      try {
+        await SyncManager.instance.pushLocalChanges().timeout(
+          const Duration(seconds: 4),
+        );
+        print('[SHARE_SCREEN] Cloud push completed.');
+      } catch (e) {
+        print(
+          '[SHARE_SCREEN] Cloud push timed out or failed, will sync next time app opens: $e',
+        );
+      }
+
       print('[SHARE_SCREEN] Triggering Confetti Popup (mounted: $mounted)');
       if (!mounted) {
         print('[SHARE_SCREEN] ABORTING: Not mounted!');
@@ -370,15 +393,15 @@ class _ShareSaveScreenState extends State<ShareSaveScreen> {
       print('$st');
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to save link')),
-      );
-      
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Failed to save link')));
+
       // Wait a moment for SnackBar to be visible, then close the app
       await Future.delayed(const Duration(seconds: 1));
-      
+
       if (!mounted) return;
-      
+
       // Close the app using platform channel to return to caller
       const platform = MethodChannel('shared_link');
       try {
@@ -415,8 +438,6 @@ class _ShareSaveScreenState extends State<ShareSaveScreen> {
       return url.endsWith('/') ? url.substring(0, url.length - 1) : url;
     }
   }
-
-
 
   @override
   void dispose() {
@@ -489,12 +510,20 @@ class _ShareSaveScreenState extends State<ShareSaveScreen> {
                   child: ElevatedButton.icon(
                     onPressed: _navigateToLogin,
                     icon: const Icon(Icons.login_rounded),
-                    label: const Text('Log In', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    label: const Text(
+                      'Log In',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: colorScheme.primary,
                       foregroundColor: colorScheme.onPrimary,
                       padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
                     ),
                   ),
                 ),
@@ -513,9 +542,7 @@ class _ShareSaveScreenState extends State<ShareSaveScreen> {
         scrolledUnderElevation: 0,
         titleTextStyle: theme.textTheme.headlineSmall?.copyWith(fontSize: 20),
       ),
-      body: const Center(
-        child: CircularProgressIndicator(),
-      ),
+      body: const Center(child: CircularProgressIndicator()),
     );
   }
 }
@@ -524,10 +551,7 @@ class _EditLinkDialog extends StatefulWidget {
   final String title;
   final String url;
 
-  const _EditLinkDialog({
-    required this.title,
-    required this.url,
-  });
+  const _EditLinkDialog({required this.title, required this.url});
 
   @override
   State<_EditLinkDialog> createState() => _EditLinkDialogState();
@@ -571,8 +595,8 @@ class _EditLinkDialogState extends State<_EditLinkDialog> {
               widget.url,
               style: TextStyle(
                 fontSize: 12,
-                color: Theme.of(context).brightness == Brightness.dark 
-                    ? Colors.white70 
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.white70
                     : AppTheme.textSecondary,
               ),
               maxLines: 1,
@@ -613,10 +637,7 @@ class _EditLinkDialogState extends State<_EditLinkDialog> {
           onPressed: () => Navigator.pop(context),
           child: const Text('Cancel'),
         ),
-        ElevatedButton(
-          onPressed: _save,
-          child: const Text('Save'),
-        ),
+        ElevatedButton(onPressed: _save, child: const Text('Save')),
       ],
     );
   }

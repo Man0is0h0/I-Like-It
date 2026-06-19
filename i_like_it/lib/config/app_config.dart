@@ -20,7 +20,7 @@ class AppConfig {
   late final String geminiApiKey;
   late final String privacyPolicyUrl;
   late final String termsUseUrl;
-  
+
   bool _initialized = false;
 
   /// Loads environment variables and validates required keys

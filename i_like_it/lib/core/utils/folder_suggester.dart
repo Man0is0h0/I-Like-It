@@ -20,42 +20,83 @@ class FolderSuggester {
     );
 
     // Extract keywords from title, description, and actual content
-    final keywords = _extractKeywords(linkTitle, linkDescription, linkContent);
+    final extractedKeywords = _extractKeywords(
+      linkTitle,
+      linkDescription,
+      linkContent,
+    );
     final domain = _extractDomain(linkUrl);
 
-    // Score existing folders based on keyword match
-    final scoredFolders = _scoreFolders(existingFolders, keywords, domain);
+    final aiExisting = aiSuggestions
+        .where((s) => s.startsWith('EXISTING:'))
+        .toList();
+    final newSuggestions = aiSuggestions
+        .where((s) => !s.startsWith('EXISTING:'))
+        .toList();
 
-    // See if the AI recommended an existing folder
-    final aiExisting = aiSuggestions.where((s) => s.startsWith('EXISTING:')).toList();
-    final newSuggestions = aiSuggestions.where((s) => !s.startsWith('EXISTING:')).toList();
+    // Augment keywords with AI suggested new folders for better existing folder matching
+    final combinedKeywords = [
+      ...extractedKeywords,
+      ...newSuggestions.expand(
+        (s) => s.toLowerCase().split(RegExp(r'[\s_\-]+')),
+      ),
+    ].where((w) => w.length > 2).toSet().toList();
+
+    // Score existing folders based on combined keyword match
+    final scoredFolders = _scoreFolders(
+      existingFolders,
+      combinedKeywords,
+      domain,
+    );
 
     if (aiExisting.isNotEmpty) {
-      final aiSuggestedName = aiExisting.first.replaceFirst('EXISTING:', '');
+      final aiSuggestedName = aiExisting.first
+          .replaceFirst('EXISTING:', '')
+          .trim();
       // Find this folder in existingFolders
       try {
-        final matchedFolder = existingFolders.firstWhere((f) => f.name.toLowerCase() == aiSuggestedName.toLowerCase());
+        final matchedFolder = existingFolders.firstWhere(
+          (f) =>
+              f.name.toLowerCase() == aiSuggestedName.toLowerCase() ||
+              f.name.toLowerCase().contains(aiSuggestedName.toLowerCase()),
+        );
         // If not already in scoredFolders, add it to the top
         if (!scoredFolders.any((sf) => sf.folder.id == matchedFolder.id)) {
-           scoredFolders.insert(0, ScoredFolder(folder: matchedFolder, score: 10.0, matchType: 'AI Match'));
+          scoredFolders.insert(
+            0,
+            ScoredFolder(
+              folder: matchedFolder,
+              score: 10.0,
+              matchType: 'AI Match',
+            ),
+          );
         } else {
-           // If it is, bump it to the top
-           final existingSf = scoredFolders.firstWhere((sf) => sf.folder.id == matchedFolder.id);
-           scoredFolders.remove(existingSf);
-           scoredFolders.insert(0, ScoredFolder(folder: matchedFolder, score: 10.0, matchType: 'AI Match'));
+          // If it is, bump it to the top
+          final existingSf = scoredFolders.firstWhere(
+            (sf) => sf.folder.id == matchedFolder.id,
+          );
+          scoredFolders.remove(existingSf);
+          scoredFolders.insert(
+            0,
+            ScoredFolder(
+              folder: matchedFolder,
+              score: 10.0,
+              matchType: 'AI Match',
+            ),
+          );
         }
       } catch (_) {}
     }
-    
+
     // Use AI suggestion if available, otherwise generate from keywords
-    final suggestedName = newSuggestions.isNotEmpty 
-        ? newSuggestions.first 
-        : _generateFolderName(keywords, domain);
+    final suggestedName = newSuggestions.isNotEmpty
+        ? newSuggestions.first
+        : _generateFolderName(extractedKeywords, domain);
 
     return SuggestionResult(
       suggestedFolders: scoredFolders,
       suggestedNewFolderName: suggestedName,
-      keywords: keywords,
+      keywords: extractedKeywords,
       domain: domain,
       aiSuggestions: newSuggestions,
     );
@@ -75,7 +116,7 @@ class FolderSuggester {
 
     // Score existing folders based on keyword match
     final scoredFolders = _scoreFolders(existingFolders, keywords, domain);
-    
+
     // Generate suggested folder name
     final suggestedName = _generateFolderName(keywords, domain);
 
@@ -95,30 +136,145 @@ class FolderSuggester {
   ) {
     // Combine all text with more weight on title
     final allText = '$title $title $description $content'.toLowerCase();
-    
+
     // Remove common words
     final commonWords = {
-      'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for',
-      'of', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has',
-      'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may',
-      'might', 'must', 'can', 'this', 'that', 'these', 'those', 'i', 'you',
-      'he', 'she', 'it', 'we', 'they', 'what', 'which', 'who', 'when', 'where',
-      'why', 'how', 'all', 'each', 'every', 'both', 'few', 'more', 'most',
-      'other', 'some', 'such', 'no', 'nor', 'not', 'only', 'same', 'so',
-      'than', 'too', 'very', 'just', 'my', 'your', 'his', 'her', 'its', 'our',
-      'their', 'as', 'by', 'from', 'with', 'about', 'into', 'through', 'during',
-      'before', 'after', 'above', 'below', 'up', 'down', 'out', 'off', 'over',
-      'under', 'again', 'further', 'then', 'once', 'here', 'there',
-      'if', 'unless', 'while', 'until', 'because', 'though', 'although', 'now',
-      'video', 'watch', 'youtube', 'click', 'link', 'page', 'article', 'post',
-      'read', 'view', 'see', 'get', 'new', 'latest', 'best', 'top'
+      'the',
+      'a',
+      'an',
+      'and',
+      'or',
+      'but',
+      'in',
+      'on',
+      'at',
+      'to',
+      'for',
+      'of',
+      'is',
+      'are',
+      'was',
+      'were',
+      'be',
+      'been',
+      'being',
+      'have',
+      'has',
+      'had',
+      'do',
+      'does',
+      'did',
+      'will',
+      'would',
+      'could',
+      'should',
+      'may',
+      'might',
+      'must',
+      'can',
+      'this',
+      'that',
+      'these',
+      'those',
+      'i',
+      'you',
+      'he',
+      'she',
+      'it',
+      'we',
+      'they',
+      'what',
+      'which',
+      'who',
+      'when',
+      'where',
+      'why',
+      'how',
+      'all',
+      'each',
+      'every',
+      'both',
+      'few',
+      'more',
+      'most',
+      'other',
+      'some',
+      'such',
+      'no',
+      'nor',
+      'not',
+      'only',
+      'same',
+      'so',
+      'than',
+      'too',
+      'very',
+      'just',
+      'my',
+      'your',
+      'his',
+      'her',
+      'its',
+      'our',
+      'their',
+      'as',
+      'by',
+      'from',
+      'with',
+      'about',
+      'into',
+      'through',
+      'during',
+      'before',
+      'after',
+      'above',
+      'below',
+      'up',
+      'down',
+      'out',
+      'off',
+      'over',
+      'under',
+      'again',
+      'further',
+      'then',
+      'once',
+      'here',
+      'there',
+      'if',
+      'unless',
+      'while',
+      'until',
+      'because',
+      'though',
+      'although',
+      'now',
+      'video',
+      'watch',
+      'youtube',
+      'click',
+      'link',
+      'page',
+      'article',
+      'post',
+      'read',
+      'view',
+      'see',
+      'get',
+      'new',
+      'latest',
+      'best',
+      'top',
     };
 
     // Split into words and filter
     final words = allText
         .replaceAll(RegExp(r'[^\w\s]'), ' ')
         .split(RegExp(r'\s+'))
-        .where((word) => word.isNotEmpty && word.length > 2 && !commonWords.contains(word))
+        .where(
+          (word) =>
+              word.isNotEmpty && word.length > 2 && !commonWords.contains(word),
+        )
         .toList();
 
     // Count occurrences and get top keywords
@@ -128,10 +284,9 @@ class FolderSuggester {
     }
 
     // Sort by frequency and return top 8 (more keywords for better matching)
-    final topKeywords = keywordMap.entries
-        .toList()
-        ..sort((a, b) => b.value.compareTo(a.value));
-    
+    final topKeywords = keywordMap.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
     return topKeywords.take(8).map((e) => e.key).toList();
   }
 
@@ -140,14 +295,14 @@ class FolderSuggester {
     try {
       final uri = Uri.parse(url);
       final host = uri.host.replaceAll('www.', '').toLowerCase();
-      
+
       // Handle known shortened domains
       if (host == 'pin.it') return 'pinterest';
       if (host == 'youtu.be') return 'youtube';
       if (host == 'fb.watch' || host == 'fb.me') return 'facebook';
       if (host == 't.co') return 'twitter';
       if (host == 'lnkd.in') return 'linkedin';
-      
+
       // Get domain name (remove TLD)
       final parts = host.split('.');
       return parts.isNotEmpty ? parts[0] : '';
@@ -175,8 +330,10 @@ class FolderSuggester {
           score += 3.0;
           matchedKeywords++;
         }
-        // Partial/substring match (lower value)
-        else if (folderNameLower.contains(keyword)) {
+        // Partial/word-prefix match (lower value)
+        else if (folderWords.any(
+          (w) => w.startsWith(keyword) || keyword.startsWith(w),
+        )) {
           score += 1.5;
           matchedKeywords++;
         }
@@ -207,7 +364,7 @@ class FolderSuggester {
 
     // Sort by score (descending)
     scoredFolders.sort((a, b) => b.score.compareTo(a.score));
-    
+
     // Only return folders with meaningful matches (score >= 1.5)
     return scoredFolders.where((f) => f.score >= 1.5).take(3).toList();
   }
@@ -215,13 +372,34 @@ class FolderSuggester {
   /// Check if folder is a known category
   static bool _isCategoryFolder(String folderName) {
     const categories = {
-      'tutorial', 'guide', 'documentation', 'reference',
-      'news', 'article', 'blog', 'post',
-      'video', 'podcast', 'music', 'audio',
-      'code', 'github', 'development', 'programming',
-      'design', 'ui', 'ux', 'graphic',
-      'business', 'marketing', 'sales', 'analytics',
-      'personal', 'todo', 'reading list', 'bookmarks'
+      'tutorial',
+      'guide',
+      'documentation',
+      'reference',
+      'news',
+      'article',
+      'blog',
+      'post',
+      'video',
+      'podcast',
+      'music',
+      'audio',
+      'code',
+      'github',
+      'development',
+      'programming',
+      'design',
+      'ui',
+      'ux',
+      'graphic',
+      'business',
+      'marketing',
+      'sales',
+      'analytics',
+      'personal',
+      'todo',
+      'reading list',
+      'bookmarks',
     };
 
     final lowerName = folderName.toLowerCase();
@@ -229,7 +407,12 @@ class FolderSuggester {
   }
 
   /// Determine match type for UI display
-  static String _getMatchType(double score, List<String> keywords, String domain, String folderName) {
+  static String _getMatchType(
+    double score,
+    List<String> keywords,
+    String domain,
+    String folderName,
+  ) {
     if (score >= 3) return 'Strong match';
     if (score >= 1.5) return 'Good match';
     if (score > 0) return 'Possible match';

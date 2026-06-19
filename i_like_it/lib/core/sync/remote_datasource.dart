@@ -26,9 +26,7 @@ class RemoteDataSource {
 
   Future<void> updateUserEmail(String email) async {
     final userId = UserSessionManager.userId;
-    await _client.from('users').update({
-      'email': email,
-    }).eq('id', userId);
+    await _client.from('users').update({'email': email}).eq('id', userId);
   }
 
   Future<void> updateLastSeen() async {
@@ -36,14 +34,18 @@ class RemoteDataSource {
     try {
       final userId = UserSessionManager.userId;
       final now = DateTime.now().toUtc().toIso8601String();
-      
+
       // Update and select to verify it worked (RLS will return empty if not allowed)
-      final response = await _client.from('users').update({
-        'last_seen_at': now,
-      }).eq('id', userId).select();
-      
+      final response = await _client
+          .from('users')
+          .update({'last_seen_at': now})
+          .eq('id', userId)
+          .select();
+
       if (response.isEmpty) {
-        print('[RemoteDataSource] WARNING: updateLastSeen returned empty. RLS might be blocking update for $userId');
+        print(
+          '[RemoteDataSource] WARNING: updateLastSeen returned empty. RLS might be blocking update for $userId',
+        );
       } else {
         print('[RemoteDataSource] Success: Updated last_seen_at to $now');
       }
@@ -59,21 +61,29 @@ class RemoteDataSource {
         .select('email')
         .eq('id', userId)
         .maybeSingle();
-    
+
     if (response != null) {
       return response['email'] as String?;
     }
     return null;
   }
-  
+
   // --- Folders ---
 
-  Future<Map<String, dynamic>> upsertFolder(Map<String, dynamic> folderData) async {
-    final response = await _client.from('folders').upsert(folderData).select().single();
+  Future<Map<String, dynamic>> upsertFolder(
+    Map<String, dynamic> folderData,
+  ) async {
+    final response = await _client
+        .from('folders')
+        .upsert(folderData)
+        .select()
+        .single();
     return response;
   }
 
-  Future<List<Map<String, dynamic>>> fetchNewFolders(String lastSyncTime) async {
+  Future<List<Map<String, dynamic>>> fetchNewFolders(
+    String lastSyncTime,
+  ) async {
     final userId = UserSessionManager.userId;
     // We fetch any folder belonging to this user updated after lastSyncTime
     final response = await _client
@@ -88,7 +98,11 @@ class RemoteDataSource {
   // --- Links ---
 
   Future<Map<String, dynamic>> upsertLink(Map<String, dynamic> linkData) async {
-    final response = await _client.from('links').upsert(linkData).select().single();
+    final response = await _client
+        .from('links')
+        .upsert(linkData)
+        .select()
+        .single();
     return response;
   }
 
@@ -102,27 +116,28 @@ class RemoteDataSource {
         .order('updated_at');
     return List<Map<String, dynamic>>.from(response);
   }
-  
+
   // --- Recovery ---
-  
+
   Future<String?> findUserIdByRecoveryHash(String hash) async {
     final response = await _client
         .from('users')
         .select('id')
         .eq('recovery_hash', hash)
         .maybeSingle();
-        
+
     if (response != null) {
       return response['id'] as String;
     }
     return null;
   }
-  
 
-  
   Future<String?> findUserIdByEmail(String email) async {
     try {
-      final response = await _client.rpc('get_user_id_by_email', params: {'p_email': email});
+      final response = await _client.rpc(
+        'get_user_id_by_email',
+        params: {'p_email': email},
+      );
       if (response != null) {
         return response as String;
       }
@@ -131,22 +146,28 @@ class RemoteDataSource {
     }
     return null;
   }
-  
+
   // --- OTP (RPC Functions) ---
-  
+
   Future<bool> requestOtp(String email) async {
     try {
-      final response = await _client.rpc('request_recovery_otp', params: {'p_email': email});
+      final response = await _client.rpc(
+        'request_recovery_otp',
+        params: {'p_email': email},
+      );
       return response['success'] == true;
     } catch (e) {
       print('RPC request_recovery_otp failed: $e');
       return false;
     }
   }
-  
+
   Future<bool> verifyOtp(String email, String code) async {
     try {
-      final response = await _client.rpc('verify_recovery_otp', params: {'p_email': email, 'p_code': code});
+      final response = await _client.rpc(
+        'verify_recovery_otp',
+        params: {'p_email': email, 'p_code': code},
+      );
       return response['success'] == true;
     } catch (e) {
       print('RPC verify_recovery_otp failed: $e');
@@ -162,7 +183,7 @@ class RemoteDataSource {
         .select('role')
         .eq('id', userId)
         .maybeSingle();
-    
+
     if (response != null) {
       return response['role'] as String?;
     }
@@ -182,9 +203,12 @@ class RemoteDataSource {
     final usersCount = await _client.from('users').count(CountOption.exact);
     final linksCount = await _client.from('links').count(CountOption.exact);
     final foldersCount = await _client.from('folders').count(CountOption.exact);
-    
+
     // Active users (last 24h)
-    final yesterday = DateTime.now().toUtc().subtract(const Duration(hours: 24)).toIso8601String();
+    final yesterday = DateTime.now()
+        .toUtc()
+        .subtract(const Duration(hours: 24))
+        .toIso8601String();
     final activeUsers = await _client
         .from('users')
         .count(CountOption.exact)
@@ -197,12 +221,12 @@ class RemoteDataSource {
       'active_users': activeUsers,
     };
   }
-  
+
   // --- Analytics & Categorization ---
 
   /// Fetches folders that have no category assigned
   Future<List<Map<String, dynamic>>> fetchUncategorizedFolders() async {
-    // Assuming 'category' column exists. If strictly assuming schema, 
+    // Assuming 'category' column exists. If strictly assuming schema,
     // it might fail if column is missing. But we must assume it exists per requirements.
     try {
       final response = await _client
@@ -218,7 +242,9 @@ class RemoteDataSource {
   }
 
   /// Bulk updates folder categories
-  Future<void> updateFolderCategories(List<Map<String, dynamic>> updates) async {
+  Future<void> updateFolderCategories(
+    List<Map<String, dynamic>> updates,
+  ) async {
     if (updates.isEmpty) return;
     try {
       await _client.from('folders').upsert(updates);
@@ -231,10 +257,8 @@ class RemoteDataSource {
   /// Fetches ALL folder categories for the donut chart
   Future<Map<String, int>> fetchFolderCategoriesDistribution() async {
     try {
-      final response = await _client
-          .from('folders')
-          .select('category');
-          
+      final response = await _client.from('folders').select('category');
+
       final distribution = <String, int>{};
       for (final item in response) {
         final category = item['category'] as String? ?? 'Uncategorized';
@@ -255,8 +279,10 @@ class RemoteDataSource {
           .from('users')
           .select('created_at')
           .order('created_at');
-      
-      return (response as List).map((e) => DateTime.parse(e['created_at'])).toList();
+
+      return (response as List)
+          .map((e) => DateTime.parse(e['created_at']))
+          .toList();
     } catch (e) {
       print('Error fetching user growth: $e');
       return [];
@@ -270,7 +296,7 @@ class RemoteDataSource {
           .from('folders')
           .select('id, name')
           .eq('is_deleted', false) // Ignore deleted folders
-          .or('system_category.is.null,system_category.eq.other') 
+          .or('system_category.is.null,system_category.eq.other')
           .limit(50);
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {
@@ -281,18 +307,21 @@ class RemoteDataSource {
 
   Future<void> updateFolderSystemCategory(dynamic id, String category) async {
     try {
-      await _client.from('folders').update({
-        'system_category': category,
-      }).eq('id', id);
+      await _client
+          .from('folders')
+          .update({'system_category': category})
+          .eq('id', id);
     } catch (e) {
       print('Error updating folder category: $e');
     }
   }
 
-  Future<void> batchUpdateSystemCategories(List<Map<String, dynamic>> updates) async {
+  Future<void> batchUpdateSystemCategories(
+    List<Map<String, dynamic>> updates,
+  ) async {
     if (updates.isEmpty) return;
-    
-    // Use individual updates instead of upsert to avoid accidentally re-inserting 
+
+    // Use individual updates instead of upsert to avoid accidentally re-inserting
     // deleted folders (which causes a constraint violation).
     // Parallelize for performance.
     final futures = updates.map((update) async {
@@ -300,9 +329,10 @@ class RemoteDataSource {
         final id = update['id'];
         final category = update['system_category'];
         if (id != null && category != null) {
-           await _client.from('folders').update({
-            'system_category': category,
-          }).eq('id', id);
+          await _client
+              .from('folders')
+              .update({'system_category': category})
+              .eq('id', id);
         }
       } catch (e) {
         // Ignore errors for individual updates (e.g. if row deleted)
@@ -320,10 +350,8 @@ class RemoteDataSource {
   /// Fetches strict system category distribution
   Future<Map<String, int>> fetchSystemCategoryDistribution() async {
     try {
-      final response = await _client
-          .from('folders')
-          .select('system_category');
-          
+      final response = await _client.from('folders').select('system_category');
+
       final distribution = <String, int>{};
       for (final item in response) {
         final category = item['system_category'] as String? ?? 'other';

@@ -47,10 +47,11 @@ class DashboardKpiCard extends StatelessWidget {
               children: [
                 if (isLoading)
                   Container(
-                    width: 60, height: 24, 
+                    width: 60,
+                    height: 24,
                     decoration: BoxDecoration(
-                      color: colorScheme.onSurface.withOpacity(0.1), 
-                      borderRadius: BorderRadius.circular(4)
+                      color: colorScheme.onSurface.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(4),
                     ),
                   )
                 else

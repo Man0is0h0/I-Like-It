@@ -36,9 +36,7 @@ class GlobalSearchDelegate extends SearchDelegate {
 
   @override
   Widget buildResults(BuildContext context) {
-    return GradientBackground(
-      child: _buildSearchResults(context),
-    );
+    return GradientBackground(child: _buildSearchResults(context));
   }
 
   @override
@@ -72,9 +70,7 @@ class GlobalSearchDelegate extends SearchDelegate {
         ),
       );
     }
-    return GradientBackground(
-      child: _buildSearchResults(context),
-    );
+    return GradientBackground(child: _buildSearchResults(context));
   }
 
   Widget _buildSearchResults(BuildContext context) {
@@ -90,19 +86,30 @@ class GlobalSearchDelegate extends SearchDelegate {
         }
 
         final data = snapshot.data!;
-        final folderList = data['folders']!.map((e) => Folder.fromMap(e)).toList();
-        final linkList = data['links']!.map((e) => LinkItem.fromMap(e)).toList();
+        final folderList = data['folders']!
+            .map((e) => Folder.fromMap(e))
+            .toList();
+        final linkList = data['links']!
+            .map((e) => LinkItem.fromMap(e))
+            .toList();
 
         if (folderList.isEmpty && linkList.isEmpty) {
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.search_off, size: 64, color: AppTheme.textSecondary.withOpacity(0.5)),
+                Icon(
+                  Icons.search_off,
+                  size: 64,
+                  color: AppTheme.textSecondary.withOpacity(0.5),
+                ),
                 const SizedBox(height: 16),
                 Text(
                   'No results found for "$query"',
-                  style: const TextStyle(color: AppTheme.textSecondary, fontSize: 16),
+                  style: const TextStyle(
+                    color: AppTheme.textSecondary,
+                    fontSize: 16,
+                  ),
                 ),
               ],
             ),
@@ -125,37 +132,52 @@ class GlobalSearchDelegate extends SearchDelegate {
                   ),
                 ),
               ),
-              ...folderList.map((folder) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: GlassContainer(
-                  padding: EdgeInsets.zero,
-                  enableBlur: false, // Optimize performance
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                    leading: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: AppTheme.primaryColor.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
+              ...folderList.map(
+                (folder) => Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: GlassContainer(
+                    padding: EdgeInsets.zero,
+                    enableBlur: false, // Optimize performance
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 4,
                       ),
-                      child: const Icon(Icons.folder, color: AppTheme.primaryColor),
-                    ),
-                    title: Text(folder.name, style: const TextStyle(fontWeight: FontWeight.w600)),
-                    trailing: const Icon(Icons.chevron_right, size: 20, color: AppTheme.textLight),
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => LinkScreen(
-                            folderId: folder.id!,
-                            folderName: folder.name,
-                          ),
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primaryColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
                         ),
-                      );
-                    },
+                        child: const Icon(
+                          Icons.folder,
+                          color: AppTheme.primaryColor,
+                        ),
+                      ),
+                      title: Text(
+                        folder.name,
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      trailing: const Icon(
+                        Icons.chevron_right,
+                        size: 20,
+                        color: AppTheme.textLight,
+                      ),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => LinkScreen(
+                              folderId: folder.id!,
+                              folderName: folder.name,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
                   ),
                 ),
-              )),
+              ),
               const SizedBox(height: 24),
             ],
             if (linkList.isNotEmpty) ...[
@@ -171,40 +193,55 @@ class GlobalSearchDelegate extends SearchDelegate {
                   ),
                 ),
               ),
-              ...linkList.map((link) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: GlassContainer(
-                  padding: EdgeInsets.zero,
-                  enableBlur: false, // Optimize performance
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                    leading: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: AppTheme.surfaceColor,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: AppTheme.borderColor),
+              ...linkList.map(
+                (link) => Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: GlassContainer(
+                    padding: EdgeInsets.zero,
+                    enableBlur: false, // Optimize performance
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 4,
                       ),
-                      child: const Icon(Icons.link, size: 20),
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppTheme.surfaceColor,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: AppTheme.borderColor),
+                        ),
+                        child: const Icon(Icons.link, size: 20),
+                      ),
+                      title: Text(
+                        link.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      subtitle: Text(
+                        link.url,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: AppTheme.textSecondary,
+                          fontSize: 12,
+                        ),
+                      ),
+                      onTap: () {
+                        String url = MetadataExtractor.extractCleanUrl(
+                          link.url,
+                        );
+                        if (!url.startsWith('http://') &&
+                            !url.startsWith('https://')) {
+                          url = 'https://$url';
+                        }
+                        UrlUtils.launchBrowserOrApp(context, url);
+                      },
                     ),
-                    title: Text(link.title, maxLines: 1, overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontWeight: FontWeight.w600)),
-                    subtitle: Text(
-                      link.url, 
-                      maxLines: 1, 
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
-                    ),
-                    onTap: () {
-                      String url = MetadataExtractor.extractCleanUrl(link.url);
-                      if (!url.startsWith('http://') && !url.startsWith('https://')) {
-                        url = 'https://$url';
-                      }
-                      UrlUtils.launchBrowserOrApp(context, url);
-                    },
                   ),
                 ),
-              )),
+              ),
             ],
           ],
         );

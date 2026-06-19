@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../../../core/widgets/glass_container.dart';
 import '../../../../core/utils/category_colors.dart'; // New import
 
-
 class FolderDistributionChart extends StatefulWidget {
   final Map<String, int> data;
   final VoidCallback onRefresh;
@@ -15,7 +14,8 @@ class FolderDistributionChart extends StatefulWidget {
   });
 
   @override
-  State<FolderDistributionChart> createState() => _FolderDistributionChartState();
+  State<FolderDistributionChart> createState() =>
+      _FolderDistributionChartState();
 }
 
 class _FolderDistributionChartState extends State<FolderDistributionChart> {
@@ -35,7 +35,7 @@ class _FolderDistributionChartState extends State<FolderDistributionChart> {
         child: const Center(child: Text('No folders yet')),
       );
     }
-    
+
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
@@ -52,10 +52,20 @@ class _FolderDistributionChartState extends State<FolderDistributionChart> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Folder Topics', 
-                    style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600, color: colorScheme.onSurface, letterSpacing: -0.5)),
-                  Text('Distribution by category', 
-                    style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant)),
+                  Text(
+                    'Folder Topics',
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: colorScheme.onSurface,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                  Text(
+                    'Distribution by category',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
                 ],
               ),
             ],
@@ -63,13 +73,13 @@ class _FolderDistributionChartState extends State<FolderDistributionChart> {
           const SizedBox(height: 24),
           Stack(
             children: [
-               LayoutBuilder(
-                 builder: (context, constraints) {
-                   // Responsive switch: if width is small, stack vertically
-                   final bool isNarrow = constraints.maxWidth < 350;
-                   
-                   // The chart widget (reused)
-                   final chartWidget = SizedBox(
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  // Responsive switch: if width is small, stack vertically
+                  final bool isNarrow = constraints.maxWidth < 350;
+
+                  // The chart widget (reused)
+                  final chartWidget = SizedBox(
                     width: 200,
                     height: 200,
                     child: Stack(
@@ -78,45 +88,72 @@ class _FolderDistributionChartState extends State<FolderDistributionChart> {
                         PieChart(
                           PieChartData(
                             pieTouchData: PieTouchData(
-                              touchCallback: (FlTouchEvent event, pieTouchResponse) {
-                                setState(() {
-                                  if (!event.isInterestedForInteractions ||
-                                      pieTouchResponse == null ||
-                                      pieTouchResponse.touchedSection == null) {
-                                    _touchedIndex = -1;
-                                    return;
-                                  }
-                                  _touchedIndex = pieTouchResponse.touchedSection!.touchedSectionIndex;
-                                });
-                              },
+                              touchCallback:
+                                  (FlTouchEvent event, pieTouchResponse) {
+                                    setState(() {
+                                      if (!event.isInterestedForInteractions ||
+                                          pieTouchResponse == null ||
+                                          pieTouchResponse.touchedSection ==
+                                              null) {
+                                        _touchedIndex = -1;
+                                        return;
+                                      }
+                                      _touchedIndex = pieTouchResponse
+                                          .touchedSection!
+                                          .touchedSectionIndex;
+                                    });
+                                  },
                             ),
                             borderData: FlBorderData(show: false),
-                            sectionsSpace: 4, 
-                            centerSpaceRadius: 60, 
+                            sectionsSpace: 4,
+                            centerSpaceRadius: 60,
                             sections: _generateSections(total),
                           ),
                         ),
                         Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            _touchedIndex != -1 && _touchedIndex < widget.data.length
+                            _touchedIndex != -1 &&
+                                    _touchedIndex < widget.data.length
                                 ? Text(
-                                    widget.data.entries.toList()[_touchedIndex].value.toString(),
-                                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: colorScheme.onSurface),
+                                    widget.data.entries
+                                        .toList()[_touchedIndex]
+                                        .value
+                                        .toString(),
+                                    style: TextStyle(
+                                      fontSize: 28,
+                                      fontWeight: FontWeight.bold,
+                                      color: colorScheme.onSurface,
+                                    ),
                                   )
                                 : Text(
                                     total.toString(),
-                                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: colorScheme.onSurface),
+                                    style: TextStyle(
+                                      fontSize: 28,
+                                      fontWeight: FontWeight.bold,
+                                      color: colorScheme.onSurface,
+                                    ),
                                   ),
-                            _touchedIndex != -1 && _touchedIndex < widget.data.length
+                            _touchedIndex != -1 &&
+                                    _touchedIndex < widget.data.length
                                 ? Text(
-                                    widget.data.entries.toList()[_touchedIndex].key,
-                                    style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant, letterSpacing: 1.0),
+                                    widget.data.entries
+                                        .toList()[_touchedIndex]
+                                        .key,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: colorScheme.onSurfaceVariant,
+                                      letterSpacing: 1.0,
+                                    ),
                                     overflow: TextOverflow.ellipsis,
                                   )
                                 : Text(
                                     'Topics',
-                                    style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant, letterSpacing: 1.0),
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: colorScheme.onSurfaceVariant,
+                                      letterSpacing: 1.0,
+                                    ),
                                   ),
                           ],
                         ),
@@ -124,31 +161,32 @@ class _FolderDistributionChartState extends State<FolderDistributionChart> {
                     ),
                   );
 
-                   if (isNarrow) {
-                     return Center(
-                       child: Column(
-                         mainAxisSize: MainAxisSize.min,
-                         children: [
-                           chartWidget,
-                           const SizedBox(height: 20),
-                           _buildLegend(context),
-                         ],
-                       ),
-                     );
-                   } else {
-                     return SizedBox(
-                       height: 200, // Fixed height only for Row mode to align nicely
-                       child: Row(
-                         children: [
-                           chartWidget,
-                           const SizedBox(width: 24),
-                           Expanded(child: _buildLegend(context)),
-                         ],
-                       ),
-                     );
-                   }
-                 },
-               ),
+                  if (isNarrow) {
+                    return Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          chartWidget,
+                          const SizedBox(height: 20),
+                          _buildLegend(context),
+                        ],
+                      ),
+                    );
+                  } else {
+                    return SizedBox(
+                      height:
+                          200, // Fixed height only for Row mode to align nicely
+                      child: Row(
+                        children: [
+                          chartWidget,
+                          const SizedBox(width: 24),
+                          Expanded(child: _buildLegend(context)),
+                        ],
+                      ),
+                    );
+                  }
+                },
+              ),
             ],
           ),
         ],
@@ -163,7 +201,7 @@ class _FolderDistributionChartState extends State<FolderDistributionChart> {
       final isTouched = i == _touchedIndex;
       final radius = isTouched ? 25.0 : 20.0;
       final entry = entries[i];
-      
+
       return PieChartSectionData(
         color: _getCategoryColor(entry.key),
         value: entry.value.toDouble(),
@@ -181,12 +219,12 @@ class _FolderDistributionChartState extends State<FolderDistributionChart> {
     final entries = widget.data.entries.toList();
     // Sort by value descending
     entries.sort((a, b) => b.value.compareTo(a.value));
-    
+
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: entries.take(4).map((entry) {
         final color = _getCategoryColor(entry.key);
-        
+
         final total = widget.data.values.fold(0, (sum, val) => sum + val);
         final percentage = (entry.value / total * 100).toStringAsFixed(1);
 
@@ -198,19 +236,22 @@ class _FolderDistributionChartState extends State<FolderDistributionChart> {
               Row(
                 children: [
                   Container(
-                    width: 8, height: 8,
+                    width: 8,
+                    height: 8,
                     decoration: BoxDecoration(
                       color: color,
                       shape: BoxShape.circle,
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Text(entry.key,
-                       style: theme.textTheme.bodyMedium?.copyWith(
-                         color: colorScheme.onSurface.withOpacity(0.8),
-                         fontWeight: FontWeight.w600,
-                         fontSize: 13,
-                       )), 
+                  Text(
+                    entry.key,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: colorScheme.onSurface.withOpacity(0.8),
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                  ),
                 ],
               ),
               GlassContainer(
@@ -218,7 +259,13 @@ class _FolderDistributionChartState extends State<FolderDistributionChart> {
                 borderRadius: BorderRadius.circular(4),
                 color: colorScheme.onSurface.withOpacity(0.05),
                 enableBlur: false, // Optimize
-                child: Text('$percentage%', style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 11)),
+                child: Text(
+                  '$percentage%',
+                  style: TextStyle(
+                    color: colorScheme.onSurfaceVariant,
+                    fontSize: 11,
+                  ),
+                ),
               ),
             ],
           ),

@@ -79,8 +79,8 @@ class _FolderSuggestionDialogState extends State<FolderSuggestionDialog> {
                       'Analyzing video...',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Theme.of(context).brightness == Brightness.dark 
-                            ? Colors.white70 
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white70
                             : AppTheme.textSecondary,
                       ),
                     ),
@@ -103,7 +103,11 @@ class _FolderSuggestionDialogState extends State<FolderSuggestionDialog> {
               .where((sf) => sf.folder.name.toLowerCase().contains(query))
               .toList();
           final otherFolders = widget.folders
-              .where((f) => !suggestion.suggestedFolders.any((sf) => sf.folder.id == f.id))
+              .where(
+                (f) => !suggestion.suggestedFolders.any(
+                  (sf) => sf.folder.id == f.id,
+                ),
+              )
               .where((f) => f.name.toLowerCase().contains(query))
               .toList();
           final filteredAI = suggestion.aiSuggestions
@@ -123,7 +127,10 @@ class _FolderSuggestionDialogState extends State<FolderSuggestionDialog> {
                     hintText: 'Search folders...',
                     prefixIcon: const Icon(Icons.search, size: 20),
                     isDense: true,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -152,98 +159,127 @@ class _FolderSuggestionDialogState extends State<FolderSuggestionDialog> {
                               ),
                             ),
                             const SizedBox(width: 6),
-                            const Icon(Icons.lightbulb, size: 14, color: Colors.amber),
+                            const Icon(
+                              Icons.lightbulb,
+                              size: 14,
+                              color: Colors.amber,
+                            ),
                           ],
                         ),
                         const SizedBox(height: 8),
-                        ...filteredAI.map((name) => Padding(
-                          padding: const EdgeInsets.only(bottom: 6),
-                          child: GestureDetector(
-                            onTap: () => _createFolderWithName(name),
-                            child: Container(
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                border: Border.all(color: Colors.green, width: 1.5),
-                                borderRadius: BorderRadius.circular(8),
-                                color: Colors.green.withOpacity(0.05),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      name,
-                                      style: const TextStyle(
-                                        fontSize: 13,
-                                        color: Colors.green,
-                                        fontWeight: FontWeight.w500,
+                        ...filteredAI.map(
+                          (name) => Padding(
+                            padding: const EdgeInsets.only(bottom: 6),
+                            child: GestureDetector(
+                              onTap: () => _createFolderWithName(name),
+                              child: Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  border: Border.all(
+                                    color: Colors.green,
+                                    width: 1.5,
+                                  ),
+                                  borderRadius: BorderRadius.circular(8),
+                                  color: Colors.green.withOpacity(0.05),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        name,
+                                        style: const TextStyle(
+                                          fontSize: 13,
+                                          color: Colors.green,
+                                          fontWeight: FontWeight.w500,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                  const Icon(Icons.add_circle, size: 18, color: Colors.green),
-                                ],
+                                    const Icon(
+                                      Icons.add_circle,
+                                      size: 18,
+                                      color: Colors.green,
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ),
-                        )),
+                        ),
                       ],
                     ),
                   ),
 
-            // Suggested folders
-            if (filteredSuggested.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Suggested folders:',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 8),
-                    ...filteredSuggested.map((scoredFolder) {
-                      final isStrongMatch = scoredFolder.score >= 3;
-                      return ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        leading: isStrongMatch
-                            ? const Icon(Icons.check_circle, color: Colors.green, size: 24)
-                            : const Icon(Icons.folder, color: AppTheme.primaryColor, size: 24),
-                        title: Text(scoredFolder.folder.name),
-                        subtitle: Text(
-                          scoredFolder.matchType,
-                          style: const TextStyle(fontSize: 11),
+                // Suggested folders
+                if (filteredSuggested.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Suggested folders:',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                        onTap: () => Navigator.pop(context, scoredFolder.folder),
-                      );
-                    }),
-                  ],
-                ),
-              ),
-
-            // Other folders
-            if (otherFolders.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Other folders:',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                        const SizedBox(height: 8),
+                        ...filteredSuggested.map((scoredFolder) {
+                          final isStrongMatch = scoredFolder.score >= 3;
+                          return ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            leading: isStrongMatch
+                                ? const Icon(
+                                    Icons.check_circle,
+                                    color: Colors.green,
+                                    size: 24,
+                                  )
+                                : const Icon(
+                                    Icons.folder,
+                                    color: AppTheme.primaryColor,
+                                    size: 24,
+                                  ),
+                            title: Text(scoredFolder.folder.name),
+                            subtitle: Text(
+                              scoredFolder.matchType,
+                              style: const TextStyle(fontSize: 11),
+                            ),
+                            onTap: () =>
+                                Navigator.pop(context, scoredFolder.folder),
+                          );
+                        }),
+                      ],
                     ),
-                    const SizedBox(height: 8),
-                    ...otherFolders.map((folder) {
-                      return ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        leading: const Icon(Icons.folder_open, size: 24),
-                        title: Text(folder.name),
-                        onTap: () => Navigator.pop(context, folder),
-                      );
-                    }),
-                  ],
-                ),
-              ),
+                  ),
+
+                // Other folders
+                if (otherFolders.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Other folders:',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        ...otherFolders.map((folder) {
+                          return ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            leading: const Icon(Icons.folder_open, size: 24),
+                            title: Text(folder.name),
+                            onTap: () => Navigator.pop(context, folder),
+                          );
+                        }),
+                      ],
+                    ),
+                  ),
               ],
             ),
           );
@@ -271,13 +307,14 @@ class _FolderSuggestionDialogState extends State<FolderSuggestionDialog> {
                 'Create new folder',
                 style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
               ),
-              if (_lastSuggestion != null && _lastSuggestion!.suggestedNewFolderName.isNotEmpty)
+              if (_lastSuggestion != null &&
+                  _lastSuggestion!.suggestedNewFolderName.isNotEmpty)
                 Text(
                   _lastSuggestion!.suggestedNewFolderName,
                   style: TextStyle(
                     fontSize: 10,
-                    color: Theme.of(context).brightness == Brightness.dark 
-                        ? Colors.white54 
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white54
                         : AppTheme.textSecondary,
                   ),
                 ),
@@ -298,9 +335,7 @@ class _FolderSuggestionDialogState extends State<FolderSuggestionDialog> {
   void _createFolderWithName(String name) async {
     final result = await showDialog<Folder>(
       context: context,
-      builder: (context) => AddFolderDialog(
-        suggestedName: name,
-      ),
+      builder: (context) => AddFolderDialog(suggestedName: name),
     );
 
     if (result != null && mounted) {
@@ -311,9 +346,8 @@ class _FolderSuggestionDialogState extends State<FolderSuggestionDialog> {
   void _showCreateFolderDialog(SuggestionResult suggestion) async {
     final result = await showDialog<Folder>(
       context: context,
-      builder: (context) => AddFolderDialog(
-        suggestedName: suggestion.suggestedNewFolderName,
-      ),
+      builder: (context) =>
+          AddFolderDialog(suggestedName: suggestion.suggestedNewFolderName),
     );
 
     if (result != null && mounted) {

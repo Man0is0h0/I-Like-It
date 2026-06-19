@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class UrlUtils {
-  static Future<void> launchBrowserOrApp(BuildContext context, String url) async {
+  static Future<void> launchBrowserOrApp(
+    BuildContext context,
+    String url,
+  ) async {
     final uri = Uri.parse(url);
     try {
       // Try to open with the dedicated app if installed
@@ -30,9 +33,9 @@ class UrlUtils {
         }
       } catch (e2) {
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Could not open link')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Could not open link')));
         }
       }
     }
@@ -42,7 +45,7 @@ class UrlUtils {
     try {
       final uri = Uri.parse(url);
       final domain = uri.host;
-      
+
       // Remove 'www.' if present
       if (domain.startsWith('www.')) {
         return domain.substring(4);
@@ -58,23 +61,27 @@ class UrlUtils {
     try {
       final uri = Uri.parse(url);
       final domain = uri.host;
-      
+
       // Remove 'www.' if present
-      String displayDomain = domain.startsWith('www.') 
-          ? domain.substring(4) 
+      String displayDomain = domain.startsWith('www.')
+          ? domain.substring(4)
           : domain;
-      
+
       // If there's a path, add first segment to make it more meaningful
       if (uri.path.isNotEmpty && uri.path != '/') {
-        final pathSegments = uri.pathSegments.where((s) => s.isNotEmpty).toList();
+        final pathSegments = uri.pathSegments
+            .where((s) => s.isNotEmpty)
+            .toList();
         if (pathSegments.isNotEmpty) {
           final firstSegment = pathSegments.first;
           // Capitalize and clean up
-          final cleanedSegment = firstSegment.replaceAll('-', ' ').replaceAll('_', ' ');
+          final cleanedSegment = firstSegment
+              .replaceAll('-', ' ')
+              .replaceAll('_', ' ');
           return '$displayDomain · ${cleanedSegment.substring(0, 1).toUpperCase()}${cleanedSegment.substring(1)}';
         }
       }
-      
+
       return displayDomain;
     } catch (e) {
       return url.length > 50 ? '${url.substring(0, 50)}...' : url;
@@ -96,7 +103,20 @@ class UrlUtils {
       return '${difference.inDays}d ago';
     } else {
       // Format as "Jan 17, 2025"
-      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const months = [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec',
+      ];
       final month = months[dateTime.month - 1];
       return '$month ${dateTime.day}, ${dateTime.year}';
     }

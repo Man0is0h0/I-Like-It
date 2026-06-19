@@ -2,7 +2,8 @@ class Folder {
   final int? id;
   final String name;
   final DateTime createdAt;
-  final String icon; // Icon codepoint as string (e.g., '0xe3b0' for folder icon)
+  final String
+  icon; // Icon codepoint as string (e.g., '0xe3b0' for folder icon)
   final int itemCount;
 
   Folder({

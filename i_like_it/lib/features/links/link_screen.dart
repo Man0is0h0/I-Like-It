@@ -34,7 +34,7 @@ class _LinkScreenState extends State<LinkScreen> {
   void initState() {
     super.initState();
     _loadLinks();
-    
+
     // Listen for background sync updates
     _syncSubscription = SyncManager.instance.onSyncCompleted.listen((_) {
       if (mounted) {
@@ -81,9 +81,9 @@ class _LinkScreenState extends State<LinkScreen> {
         await DatabaseHelper.instance.deleteLink(link.id!);
         _loadLinks();
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Link deleted')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Link deleted')));
         }
       } catch (e) {
         if (mounted) {
@@ -116,7 +116,10 @@ class _LinkScreenState extends State<LinkScreen> {
             color: theme.scaffoldBackgroundColor,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
             border: Border(
-              top: BorderSide(color: colorScheme.primary.withOpacity(0.3), width: 1),
+              top: BorderSide(
+                color: colorScheme.primary.withOpacity(0.3),
+                width: 1,
+              ),
             ),
           ),
           child: SingleChildScrollView(
@@ -179,7 +182,9 @@ class _LinkScreenState extends State<LinkScreen> {
                           Text(
                             timeAgo,
                             style: theme.textTheme.bodySmall?.copyWith(
-                              color: colorScheme.onSurfaceVariant.withOpacity(0.6),
+                              color: colorScheme.onSurfaceVariant.withOpacity(
+                                0.6,
+                              ),
                               fontSize: 11,
                             ),
                           ),
@@ -206,7 +211,11 @@ class _LinkScreenState extends State<LinkScreen> {
                       children: [
                         Row(
                           children: [
-                            Icon(Icons.note_alt_outlined, size: 16, color: colorScheme.primary),
+                            Icon(
+                              Icons.note_alt_outlined,
+                              size: 16,
+                              color: colorScheme.primary,
+                            ),
                             const SizedBox(width: 6),
                             Text(
                               'Notes',
@@ -249,7 +258,9 @@ class _LinkScreenState extends State<LinkScreen> {
                         label: const Text('Edit'),
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                           side: BorderSide(color: colorScheme.outline),
                         ),
                       ),
@@ -260,8 +271,11 @@ class _LinkScreenState extends State<LinkScreen> {
                       child: ElevatedButton.icon(
                         onPressed: () {
                           Navigator.pop(ctx);
-                          String finalUrl = MetadataExtractor.extractCleanUrl(link.url);
-                          if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://')) {
+                          String finalUrl = MetadataExtractor.extractCleanUrl(
+                            link.url,
+                          );
+                          if (!finalUrl.startsWith('http://') &&
+                              !finalUrl.startsWith('https://')) {
                             finalUrl = 'https://$finalUrl';
                           }
                           UrlUtils.launchBrowserOrApp(context, finalUrl);
@@ -272,7 +286,9 @@ class _LinkScreenState extends State<LinkScreen> {
                           backgroundColor: colorScheme.primary,
                           foregroundColor: colorScheme.onPrimary,
                           padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
                       ),
                     ),
@@ -290,11 +306,11 @@ class _LinkScreenState extends State<LinkScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final double appBarHeight = widget.folderName.length > 50 
-        ? 160.0 
+    final double appBarHeight = widget.folderName.length > 50
+        ? 160.0
         : (widget.folderName.length > 30 ? 140.0 : 100.0);
-    final double titleFontSize = widget.folderName.length > 50 
-        ? 15.0 
+    final double titleFontSize = widget.folderName.length > 50
+        ? 15.0
         : (widget.folderName.length > 30 ? 17.0 : 20.0);
 
     return GradientScaffold(
@@ -305,110 +321,119 @@ class _LinkScreenState extends State<LinkScreen> {
         },
         child: CustomScrollView(
           slivers: [
-          SliverAppBar(
-            pinned: true,
-            expandedHeight: appBarHeight,
-            backgroundColor: Colors.transparent, // Transparent for gradient
-            surfaceTintColor: Colors.transparent,
-            leading: IconButton(
-              icon: GlassContainer(
-                padding: const EdgeInsets.all(8),
-                borderRadius: BorderRadius.circular(50),
-                child: Icon(Icons.arrow_back, size: 20, color: colorScheme.onSurface),
-              ),
-              onPressed: () => Navigator.pop(context),
-            ),
-            flexibleSpace: LayoutBuilder(
-              builder: (BuildContext context, BoxConstraints constraints) {
-                final double topPadding = MediaQuery.of(context).padding.top;
-                final double collapsedHeight = kToolbarHeight + topPadding;
-                // If current height is close to collapsed height, it is collapsed
-                final bool isCollapsed = constraints.maxHeight <= collapsedHeight + 20.0;
-
-                return FlexibleSpaceBar(
-                  title: Text(
-                    widget.folderName,
-                    textAlign: TextAlign.center,
-                    maxLines: isCollapsed ? 1 : 3,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      fontSize: isCollapsed ? 16.0 : titleFontSize,
-                      letterSpacing: -0.5,
-                      color: colorScheme.onSurface,
-                    ),
+            SliverAppBar(
+              pinned: true,
+              expandedHeight: appBarHeight,
+              backgroundColor: Colors.transparent, // Transparent for gradient
+              surfaceTintColor: Colors.transparent,
+              leading: IconButton(
+                icon: GlassContainer(
+                  padding: const EdgeInsets.all(8),
+                  borderRadius: BorderRadius.circular(50),
+                  child: Icon(
+                    Icons.arrow_back,
+                    size: 20,
+                    color: colorScheme.onSurface,
                   ),
-                  centerTitle: true,
-                  titlePadding: EdgeInsets.symmetric(
-                    horizontal: 56,
-                    vertical: isCollapsed ? 12 : 16,
-                  ),
-                );
-              },
-            ),
-          ),
-          
-          if (links.isEmpty)
-            SliverFillRemaining(
-              hasScrollBody: false,
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    GlassContainer(
-                      padding: const EdgeInsets.all(32),
-                      borderRadius: BorderRadius.circular(100),
-                      child: Icon(
-                        Icons.link_off_rounded,
-                        size: 64,
-                        color: colorScheme.onSurfaceVariant.withOpacity(0.5),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    Text(
-                      'No links here',
-                      style: theme.textTheme.headlineSmall,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Save your first link to this collection',
-                      style: theme.textTheme.bodyMedium,
-                    ),
-                    const SizedBox(height: 32),
-                    ElevatedButton.icon(
-                      onPressed: () async {
-                        final added = await showDialog<bool>(
-                          context: context,
-                          builder: (_) =>
-                              AddLinkDialog(folderId: widget.folderId),
-                        );
-                        if (added == true) {
-                          _loadLinks();
-                          SyncManager.instance.sync();
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 32, vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                        backgroundColor: colorScheme.primary,
-                        foregroundColor: colorScheme.onPrimary,
-                      ),
-                      icon: const Icon(Icons.add_link, size: 20),
-                      label: const Text('Add Link'),
-                    ),
-                  ],
                 ),
+                onPressed: () => Navigator.pop(context),
               ),
-            )
-          else
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              sliver: SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
+              flexibleSpace: LayoutBuilder(
+                builder: (BuildContext context, BoxConstraints constraints) {
+                  final double topPadding = MediaQuery.of(context).padding.top;
+                  final double collapsedHeight = kToolbarHeight + topPadding;
+                  // If current height is close to collapsed height, it is collapsed
+                  final bool isCollapsed =
+                      constraints.maxHeight <= collapsedHeight + 20.0;
+
+                  return FlexibleSpaceBar(
+                    title: Text(
+                      widget.folderName,
+                      textAlign: TextAlign.center,
+                      maxLines: isCollapsed ? 1 : 3,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.headlineMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        fontSize: isCollapsed ? 16.0 : titleFontSize,
+                        letterSpacing: -0.5,
+                        color: colorScheme.onSurface,
+                      ),
+                    ),
+                    centerTitle: true,
+                    titlePadding: EdgeInsets.symmetric(
+                      horizontal: 56,
+                      vertical: isCollapsed ? 12 : 16,
+                    ),
+                  );
+                },
+              ),
+            ),
+
+            if (links.isEmpty)
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      GlassContainer(
+                        padding: const EdgeInsets.all(32),
+                        borderRadius: BorderRadius.circular(100),
+                        child: Icon(
+                          Icons.link_off_rounded,
+                          size: 64,
+                          color: colorScheme.onSurfaceVariant.withOpacity(0.5),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      Text(
+                        'No links here',
+                        style: theme.textTheme.headlineSmall,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Save your first link to this collection',
+                        style: theme.textTheme.bodyMedium,
+                      ),
+                      const SizedBox(height: 32),
+                      ElevatedButton.icon(
+                        onPressed: () async {
+                          final added = await showDialog<bool>(
+                            context: context,
+                            builder: (_) =>
+                                AddLinkDialog(folderId: widget.folderId),
+                          );
+                          if (added == true) {
+                            _loadLinks();
+                            SyncManager.instance.sync();
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 32,
+                            vertical: 16,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                          backgroundColor: colorScheme.primary,
+                          foregroundColor: colorScheme.onPrimary,
+                        ),
+                        icon: const Icon(Icons.add_link, size: 20),
+                        label: const Text('Add Link'),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            else
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate((context, index) {
                     final link = links[index];
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 10),
@@ -418,17 +443,27 @@ class _LinkScreenState extends State<LinkScreen> {
                           _showLinkDetailSheet(context, link);
                         },
                         trailing: PopupMenuButton(
-                          icon: Icon(Icons.more_vert, 
-                            color: colorScheme.onSurfaceVariant, size: 20),
+                          icon: Icon(
+                            Icons.more_vert,
+                            color: colorScheme.onSurfaceVariant,
+                            size: 20,
+                          ),
                           padding: EdgeInsets.zero,
                           itemBuilder: (context) => [
                             PopupMenuItem(
                               value: 'share',
                               child: Row(
                                 children: [
-                                  Icon(Icons.share_outlined, size: 18, color: colorScheme.onSurface),
+                                  Icon(
+                                    Icons.share_outlined,
+                                    size: 18,
+                                    color: colorScheme.onSurface,
+                                  ),
                                   const SizedBox(width: 8),
-                                  Text('Share', style: theme.textTheme.bodyMedium),
+                                  Text(
+                                    'Share',
+                                    style: theme.textTheme.bodyMedium,
+                                  ),
                                 ],
                               ),
                             ),
@@ -436,9 +471,16 @@ class _LinkScreenState extends State<LinkScreen> {
                               value: 'edit',
                               child: Row(
                                 children: [
-                                  Icon(Icons.edit_outlined, size: 18, color: colorScheme.onSurface),
+                                  Icon(
+                                    Icons.edit_outlined,
+                                    size: 18,
+                                    color: colorScheme.onSurface,
+                                  ),
                                   const SizedBox(width: 8),
-                                  Text('Edit', style: theme.textTheme.bodyMedium),
+                                  Text(
+                                    'Edit',
+                                    style: theme.textTheme.bodyMedium,
+                                  ),
                                 ],
                               ),
                             ),
@@ -454,7 +496,9 @@ class _LinkScreenState extends State<LinkScreen> {
                                   const SizedBox(width: 8),
                                   Text(
                                     'Delete',
-                                    style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.error),
+                                    style: theme.textTheme.bodyMedium?.copyWith(
+                                      color: colorScheme.error,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -480,33 +524,39 @@ class _LinkScreenState extends State<LinkScreen> {
                         ),
                       ),
                     );
-                  },
-                  childCount: links.length,
+                  }, childCount: links.length),
                 ),
               ),
-            ),
-            
-           // Fab padding space
-           const SliverToBoxAdapter(child: SizedBox(height: 80)),
+
+            // Fab padding space
+            const SliverToBoxAdapter(child: SizedBox(height: 80)),
           ],
         ),
       ),
-      floatingActionButton: links.isEmpty ? null : FloatingActionButton(
-        backgroundColor: colorScheme.primary,
-        elevation: 4,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        onPressed: () async {
-          final added = await showDialog<bool>(
-            context: context,
-            builder: (_) => AddLinkDialog(folderId: widget.folderId),
-          );
-          if (added == true) {
-            _loadLinks();
-            SyncManager.instance.sync();
-          }
-        },
-        child: Icon(Icons.add_link, size: 28, color: colorScheme.onPrimary),
-      ),
+      floatingActionButton: links.isEmpty
+          ? null
+          : FloatingActionButton(
+              backgroundColor: colorScheme.primary,
+              elevation: 4,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              onPressed: () async {
+                final added = await showDialog<bool>(
+                  context: context,
+                  builder: (_) => AddLinkDialog(folderId: widget.folderId),
+                );
+                if (added == true) {
+                  _loadLinks();
+                  SyncManager.instance.sync();
+                }
+              },
+              child: Icon(
+                Icons.add_link,
+                size: 28,
+                color: colorScheme.onPrimary,
+              ),
+            ),
     );
   }
 }

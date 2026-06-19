@@ -29,7 +29,7 @@ void main() async {
   }
 
   print("Connecting to Supabase at $url...");
-  
+
   final client = SupabaseClient(url, anonKey);
 
   try {
@@ -39,13 +39,18 @@ void main() async {
       print("Error: Privacy Policy file not found in client_items.");
       exit(1);
     }
-    
+
     print("Uploading Privacy Policy...");
-    await client.storage.from('legal-docs').upload(
-      'Privacy_Policy_iLikeIt.html',
-      privacyFile,
-      fileOptions: const FileOptions(contentType: 'text/html', upsert: true),
-    );
+    await client.storage
+        .from('legal-docs')
+        .upload(
+          'Privacy_Policy_iLikeIt.html',
+          privacyFile,
+          fileOptions: const FileOptions(
+            contentType: 'text/html',
+            upsert: true,
+          ),
+        );
     print("Privacy Policy uploaded successfully!");
 
     // 2. Upload Terms of Use
@@ -54,17 +59,26 @@ void main() async {
       print("Error: Terms of Use file not found in client_items.");
       exit(1);
     }
-    
+
     print("Uploading Terms of Use...");
-    await client.storage.from('legal-docs').upload(
-      'Terms_Use_iLikeIt.html',
-      termsFile,
-      fileOptions: const FileOptions(contentType: 'text/html', upsert: true),
-    );
+    await client.storage
+        .from('legal-docs')
+        .upload(
+          'Terms_Use_iLikeIt.html',
+          termsFile,
+          fileOptions: const FileOptions(
+            contentType: 'text/html',
+            upsert: true,
+          ),
+        );
     print("Terms of Use uploaded successfully!");
 
-    final publicPrivacyUrl = client.storage.from('legal-docs').getPublicUrl('Privacy_Policy_iLikeIt.html');
-    final publicTermsUrl = client.storage.from('legal-docs').getPublicUrl('Terms_Use_iLikeIt.html');
+    final publicPrivacyUrl = client.storage
+        .from('legal-docs')
+        .getPublicUrl('Privacy_Policy_iLikeIt.html');
+    final publicTermsUrl = client.storage
+        .from('legal-docs')
+        .getPublicUrl('Terms_Use_iLikeIt.html');
 
     print("\n=============================================");
     print("🎉 UPLOAD COMPLETED SUCCESSFULLY!");
@@ -74,6 +88,8 @@ void main() async {
     print("=============================================\n");
   } catch (e) {
     print("\n❌ Upload failed: $e");
-    print("\n💡 Tip: If you get a '403 Forbidden' or 'Bucket not found' error, make sure you ran the SQL commands in 'project-backend/storage_setup.sql' in your Supabase SQL Editor first.");
+    print(
+      "\n💡 Tip: If you get a '403 Forbidden' or 'Bucket not found' error, make sure you ran the SQL commands in 'project-backend/storage_setup.sql' in your Supabase SQL Editor first.",
+    );
   }
 }

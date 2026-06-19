@@ -6,27 +6,27 @@ import '../../theme/app_theme.dart';
 
 class SuccessConfettiPopup {
   static Future<void> show({
-    required BuildContext context, 
-    required String title, 
+    required BuildContext context,
+    required String title,
     required String message,
   }) async {
     debugPrint('[CONFETTI] SuccessConfettiPopup.show called');
     final completer = Completer<void>();
-    
+
     // Use the overlay from the root navigator to be safe across different contexts
     final overlay = Navigator.of(context, rootNavigator: true).overlay;
-    
+
     if (overlay == null) {
       debugPrint('[CONFETTI] Error: No overlay found in context');
       return;
     }
-    
+
     late OverlayEntry entry;
     entry = OverlayEntry(
       builder: (context) {
         debugPrint('[CONFETTI] Building OverlayEntry');
         return _SuccessConfettiDialog(
-          title: title, 
+          title: title,
           message: message,
           onComplete: () {
             debugPrint('[CONFETTI] Removing OverlayEntry');
@@ -48,7 +48,7 @@ class _SuccessConfettiDialog extends StatefulWidget {
   final VoidCallback onComplete;
 
   const _SuccessConfettiDialog({
-    required this.title, 
+    required this.title,
     required this.message,
     required this.onComplete,
   });
@@ -80,8 +80,10 @@ class _SuccessConfettiDialogState extends State<_SuccessConfettiDialog>
       CurvedAnimation(parent: _animationController, curve: Curves.easeIn),
     );
 
-    _confettiController = ConfettiController(duration: const Duration(seconds: 1));
-    
+    _confettiController = ConfettiController(
+      duration: const Duration(seconds: 1),
+    );
+
     _animationController.forward();
     _confettiController.play();
 
@@ -112,10 +114,14 @@ class _SuccessConfettiDialogState extends State<_SuccessConfettiDialog>
     final fullAngle = degToRad(360);
     path.moveTo(size.width, halfWidth);
     for (double step = 0; step < fullAngle; step += degreesPerStep) {
-      path.lineTo(halfWidth + externalRadius * dart_math.cos(step),
-          halfWidth + externalRadius * dart_math.sin(step));
-      path.lineTo(halfWidth + internalRadius * dart_math.cos(step + halfDegreesPerStep),
-          halfWidth + internalRadius * dart_math.sin(step + halfDegreesPerStep));
+      path.lineTo(
+        halfWidth + externalRadius * dart_math.cos(step),
+        halfWidth + externalRadius * dart_math.sin(step),
+      );
+      path.lineTo(
+        halfWidth + internalRadius * dart_math.cos(step + halfDegreesPerStep),
+        halfWidth + internalRadius * dart_math.sin(step + halfDegreesPerStep),
+      );
     }
     path.close();
     return path;
@@ -138,10 +144,11 @@ class _SuccessConfettiDialogState extends State<_SuccessConfettiDialog>
         children: [
           // Background dismiss trigger
           GestureDetector(
-            onTap: () => _animationController.reverse().then((_) => widget.onComplete()),
+            onTap: () =>
+                _animationController.reverse().then((_) => widget.onComplete()),
             child: Container(color: Colors.transparent),
           ),
-          
+
           // The actual popup dialog
           Center(
             child: ScaleTransition(
