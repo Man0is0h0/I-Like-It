@@ -10,96 +10,117 @@ class FolderSuggester {
     required String linkContent,
     required List<Folder> existingFolders,
   }) async {
-    // Try to get AI suggestions for videos and links
-    final aiSuggestions = await AIVideoAnalyzer.analyzeVideoAndSuggestFolders(
-      videoUrl: linkUrl,
-      videoTitle: linkTitle,
-      videoDescription: linkDescription,
-      content: linkContent,
-      existingFolders: existingFolders.map((f) => f.name).toList(),
-    );
+    try {
+      // Try to get AI suggestions for videos and links
+      final aiSuggestions = await AIVideoAnalyzer.analyzeVideoAndSuggestFolders(
+        videoUrl: linkUrl,
+        videoTitle: linkTitle,
+        videoDescription: linkDescription,
+        content: linkContent,
+        existingFolders: existingFolders.map((f) => f.name).toList(),
+      );
 
-    // Extract keywords from title, description, and actual content
-    final extractedKeywords = _extractKeywords(
-      linkTitle,
-      linkDescription,
-      linkContent,
-    );
-    final domain = _extractDomain(linkUrl);
+      // Extract keywords from title, description, and actual content
+      final extractedKeywords = _extractKeywords(
+        linkTitle,
+        linkDescription,
+        linkContent,
+      );
+      final domain = _extractDomain(linkUrl);
 
-    final aiExisting = aiSuggestions
-        .where((s) => s.startsWith('EXISTING:'))
-        .toList();
-    final newSuggestions = aiSuggestions
-        .where((s) => !s.startsWith('EXISTING:'))
-        .toList();
+      final aiExisting = aiSuggestions
+          .where((s) => s.startsWith('EXISTING:'))
+          .toList();
+      final newSuggestions = aiSuggestions
+          .where((s) => !s.startsWith('EXISTING:'))
+          .toList();
 
-    // Augment keywords with AI suggested new folders for better existing folder matching
-    final combinedKeywords = [
-      ...extractedKeywords,
-      ...newSuggestions.expand(
-        (s) => s.toLowerCase().split(RegExp(r'[\s_\-]+')),
-      ),
-    ].where((w) => w.length > 2).toSet().toList();
+      // Augment keywords with AI suggested new folders for better existing folder matching
+      final combinedKeywords = [
+        ...extractedKeywords,
+        ...newSuggestions.expand(
+          (s) => s.toLowerCase().split(RegExp(r'[\s_\-]+')),
+        ),
+      ].where((w) => w.length > 2).toSet().toList();
 
-    // Score existing folders based on combined keyword match
-    final scoredFolders = _scoreFolders(
-      existingFolders,
-      combinedKeywords,
-      domain,
-    );
+      // Score existing folders based on combined keyword match
+      final scoredFolders = _scoreFolders(
+        existingFolders,
+        combinedKeywords,
+        domain,
+      );
 
-    if (aiExisting.isNotEmpty) {
-      final aiSuggestedName = aiExisting.first
-          .replaceFirst('EXISTING:', '')
-          .trim();
-      // Find this folder in existingFolders
-      try {
-        final matchedFolder = existingFolders.firstWhere(
-          (f) =>
-              f.name.toLowerCase() == aiSuggestedName.toLowerCase() ||
-              f.name.toLowerCase().contains(aiSuggestedName.toLowerCase()),
-        );
-        // If not already in scoredFolders, add it to the top
-        if (!scoredFolders.any((sf) => sf.folder.id == matchedFolder.id)) {
-          scoredFolders.insert(
-            0,
-            ScoredFolder(
-              folder: matchedFolder,
-              score: 10.0,
-              matchType: 'AI Match',
-            ),
+      if (aiExisting.isNotEmpty) {
+        final aiSuggestedName = aiExisting.first
+            .replaceFirst('EXISTING:', '')
+            .trim();
+        // Find this folder in existingFolders
+        try {
+          final matchedFolder = existingFolders.firstWhere(
+            (f) =>
+                f.name.toLowerCase() == aiSuggestedName.toLowerCase() ||
+                f.name.toLowerCase().contains(aiSuggestedName.toLowerCase()),
           );
-        } else {
-          // If it is, bump it to the top
-          final existingSf = scoredFolders.firstWhere(
-            (sf) => sf.folder.id == matchedFolder.id,
-          );
-          scoredFolders.remove(existingSf);
-          scoredFolders.insert(
-            0,
-            ScoredFolder(
-              folder: matchedFolder,
-              score: 10.0,
-              matchType: 'AI Match',
-            ),
-          );
-        }
-      } catch (_) {}
+          // If not already in scoredFolders, add it to the top
+          if (!scoredFolders.any((sf) => sf.folder.id == matchedFolder.id)) {
+            scoredFolders.insert(
+              0,
+              ScoredFolder(
+                folder: matchedFolder,
+                score: 10.0,
+                matchType: 'AI Match',
+              ),
+            );
+          } else {
+            // If it is, bump it to the top
+            final existingSf = scoredFolders.firstWhere(
+              (sf) => sf.folder.id == matchedFolder.id,
+            );
+            scoredFolders.remove(existingSf);
+            scoredFolders.insert(
+              0,
+              ScoredFolder(
+                folder: matchedFolder,
+                score: 10.0,
+                matchType: 'AI Match',
+              ),
+            );
+          }
+        } catch (_) {}
+      }
+
+      // Use AI suggestion if available, otherwise generate from keywords
+      final suggestedName = newSuggestions.isNotEmpty
+          ? newSuggestions.first
+          : _generateFolderName(extractedKeywords, domain);
+
+      return SuggestionResult(
+        suggestedFolders: scoredFolders,
+        suggestedNewFolderName: suggestedName,
+        keywords: extractedKeywords,
+        domain: domain,
+        aiSuggestions: newSuggestions,
+      );
+    } catch (e) {
+      print('AI Suggestion failed: $e');
+      
+      // Basic local scoring (fast) fallback
+      final result = suggestFolders(
+        linkUrl: linkUrl,
+        linkTitle: linkTitle,
+        linkDescription: linkDescription,
+        linkContent: linkContent,
+        existingFolders: existingFolders,
+      );
+      
+      return SuggestionResult(
+        suggestedFolders: result.suggestedFolders,
+        suggestedNewFolderName: result.suggestedNewFolderName,
+        keywords: result.keywords,
+        domain: result.domain,
+        error: e.toString(),
+      );
     }
-
-    // Use AI suggestion if available, otherwise generate from keywords
-    final suggestedName = newSuggestions.isNotEmpty
-        ? newSuggestions.first
-        : _generateFolderName(extractedKeywords, domain);
-
-    return SuggestionResult(
-      suggestedFolders: scoredFolders,
-      suggestedNewFolderName: suggestedName,
-      keywords: extractedKeywords,
-      domain: domain,
-      aiSuggestions: newSuggestions,
-    );
   }
 
   /// Suggest folders (sync version for backwards compatibility)
@@ -445,6 +466,7 @@ class SuggestionResult {
   final List<String> keywords;
   final String domain;
   final List<String> aiSuggestions;
+  final String? error;
 
   SuggestionResult({
     required this.suggestedFolders,
@@ -452,6 +474,7 @@ class SuggestionResult {
     required this.keywords,
     required this.domain,
     this.aiSuggestions = const [],
+    this.error,
   });
 }
 

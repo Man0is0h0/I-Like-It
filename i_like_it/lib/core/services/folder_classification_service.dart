@@ -1,15 +1,15 @@
 import 'dart:convert';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import '../database/database_helper.dart';
 import '../sync/sync_manager.dart';
+import '../../config/app_config.dart';
 
 class FolderClassificationService {
   static final FolderClassificationService instance =
       FolderClassificationService._();
   FolderClassificationService._();
 
-  String? get _apiKey => dotenv.env['GEMINI_API_KEY'];
+  String? get _apiKey => AppConfig.instance.geminiApiKey;
 
   String? _validatedModelEndpoint;
   bool _isInitializing = false;

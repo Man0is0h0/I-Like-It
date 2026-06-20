@@ -172,10 +172,13 @@ class FolderCard extends StatelessWidget {
                 ),
               ),
               PopupMenuButton<String>(
-                icon: Icon(
-                  Icons.more_vert,
-                  size: 20,
-                  color: colorScheme.onSurfaceVariant,
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 4),
+                  child: Icon(
+                    Icons.more_vert,
+                    size: 20,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
                 ),
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
@@ -190,7 +193,7 @@ class FolderCard extends StatelessWidget {
                           color: colorScheme.onSurfaceVariant,
                         ),
                         const SizedBox(width: 12),
-                        Text('Rename', style: theme.textTheme.bodyMedium),
+                        Text('Edit', style: theme.textTheme.bodyMedium),
                       ],
                     ),
                   ),

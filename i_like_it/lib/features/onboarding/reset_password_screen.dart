@@ -19,6 +19,66 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
 
+  void _showErrorSnackBar(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.error_outline_rounded, color: Colors.white),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: Colors.red.shade700,
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(16),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        elevation: 6,
+      ),
+    );
+  }
+
+  void _showSuccessSnackBar(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle_outline_rounded, color: Colors.white),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: Colors.green.shade600,
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(16),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        elevation: 6,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -37,11 +97,12 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                   borderRadius: BorderRadius.circular(100),
                   height: 100,
                   width: 100,
-                  padding: const EdgeInsets.all(20),
-                  child: Icon(
-                    Icons.lock_reset_outlined,
-                    size: 56,
-                    color: colorScheme.primary,
+                  padding: const EdgeInsets.all(12),
+                  child: Image.asset(
+                    theme.brightness == Brightness.light
+                        ? 'assets/light_logo_transparent.png'
+                        : 'assets/native_splash_transparent.png',
+                    fit: BoxFit.contain,
                   ),
                 ),
                 const SizedBox(height: 32),
@@ -163,16 +224,12 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     final confirmPassword = _confirmPasswordController.text.trim();
 
     if (password.length < 6) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Password must be at least 6 characters')),
-      );
+      _showErrorSnackBar('Password must be at least 6 characters');
       return;
     }
 
     if (password != confirmPassword) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Passwords do not match')));
+      _showErrorSnackBar('Passwords do not match');
       return;
     }
 
@@ -185,14 +242,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       );
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Password updated successfully! Please login with your new password.',
-            ),
-            backgroundColor: Colors.green,
-          ),
-        );
+        _showSuccessSnackBar('Password updated successfully! Please login with your new password.');
 
         // Redirect to Login page
         Navigator.of(context).pushAndRemoveUntil(
@@ -215,18 +265,11 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       }
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(errorMessage), backgroundColor: Colors.red),
-        );
+        _showErrorSnackBar(errorMessage);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to update password: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        _showErrorSnackBar('Failed to update password: $e');
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);

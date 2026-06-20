@@ -68,6 +68,7 @@ class _ILikeItAppState extends State<ILikeItApp> {
   static const _channel = MethodChannel('shared_link');
   String? _sharedLink;
   bool _showSplash = true;
+  bool _isPasswordRecovery = false;
 
   @override
   void initState() {
@@ -79,10 +80,16 @@ class _ILikeItAppState extends State<ILikeItApp> {
       Supabase.instance.client.auth.onAuthStateChange.listen((data) {
         final AuthChangeEvent event = data.event;
         if (event == AuthChangeEvent.passwordRecovery) {
-          ILikeItApp.navigatorKey.currentState?.pushAndRemoveUntil(
-            MaterialPageRoute(builder: (_) => const ResetPasswordScreen()),
-            (route) => false,
-          );
+          if (ILikeItApp.navigatorKey.currentState != null) {
+            ILikeItApp.navigatorKey.currentState!.pushAndRemoveUntil(
+              MaterialPageRoute(builder: (_) => const ResetPasswordScreen()),
+              (route) => false,
+            );
+          } else {
+            setState(() {
+              _isPasswordRecovery = true;
+            });
+          }
         }
       });
     }
@@ -142,14 +149,16 @@ class _ILikeItAppState extends State<ILikeItApp> {
                     });
                   },
                 )
-              : (_sharedLink != null
-                    ? ShareSaveScreen(
-                        sharedLink: _sharedLink!,
-                        onLinkSaved: _clearSharedLink,
-                      )
-                    : (widget.isBackedUp
+              : (_isPasswordRecovery
+                  ? const ResetPasswordScreen()
+                  : (_sharedLink != null
+                      ? ShareSaveScreen(
+                          sharedLink: _sharedLink!,
+                          onLinkSaved: _clearSharedLink,
+                        )
+                      : (widget.isBackedUp
                           ? const FolderScreen()
-                          : const InitialSetupScreen())),
+                          : const InitialSetupScreen()))),
         );
       },
     );

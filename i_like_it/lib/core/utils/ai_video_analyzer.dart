@@ -1,10 +1,10 @@
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import '../../config/app_config.dart';
 
 class AIVideoAnalyzer {
-  static String? _geminiApiKey = dotenv.env['GEMINI_API_KEY'];
+  static String? get _geminiApiKey => AppConfig.instance.geminiApiKey;
   static final Map<String, List<String>> _cache = {};
 
   /// Analyze link content and suggest folder names using Gemini API
@@ -27,7 +27,7 @@ class AIVideoAnalyzer {
       return await _callGeminiAPI(prompt);
     } catch (e) {
       print('[AI_ANALYZER] Error analyzing content: $e');
-      return [];
+      rethrow;
     }
   }
 
@@ -39,14 +39,13 @@ class AIVideoAnalyzer {
     }
 
     try {
-      // Re-fetch key in case it was reloaded, though redundant if static
-      _geminiApiKey = dotenv.env['GEMINI_API_KEY'];
+      // Key is fetched dynamically now from getter
 
       if (_geminiApiKey == null ||
           _geminiApiKey!.isEmpty ||
           _geminiApiKey == 'YOUR_API_KEY_HERE') {
         print('[AI_ANALYZER] Gemini API key not configured');
-        return [];
+        throw Exception('Gemini API key not configured');
       }
 
       int maxRetries = 3;
@@ -73,8 +72,7 @@ class AIVideoAnalyzer {
           if (response.statusCode == 200) {
             final data = jsonDecode(response.body);
             final text =
-                data['candidates']?[0]?['content']?['parts']?[0]?['text'] ?? '';
-            print('[AI_ANALYZER] Raw Gemini response:\n$text');
+                data['candidates'][0]['content']['parts'][0]['text'] as String;
             final parsed = _parseFolderSuggestions(text);
             _cache[prompt] = parsed;
             return parsed;
@@ -82,22 +80,22 @@ class AIVideoAnalyzer {
             print(
               '[AI_ANALYZER] Gemini API error: 429. Retrying in ${i + 1} seconds...',
             );
-            if (i == maxRetries - 1) return [];
+            if (i == maxRetries - 1) throw Exception('Gemini API error 429 (Too many requests)');
             await Future.delayed(Duration(seconds: i + 1));
           } else {
             print('[AI_ANALYZER] Gemini API error: ${response.statusCode}');
-            return [];
+            throw Exception('Gemini API error: ${response.statusCode}');
           }
         } catch (e) {
           print('[AI_ANALYZER] Gemini API call attempt ${i + 1} failed: $e');
-          if (i == maxRetries - 1) return [];
+          if (i == maxRetries - 1) throw Exception('API call failed: $e');
           await Future.delayed(Duration(seconds: i + 1));
         }
       }
-      return [];
+      throw Exception('API call failed after max retries');
     } catch (e) {
       print('[AI_ANALYZER] Gemini API call failed: $e');
-      return [];
+      throw Exception('API call failed: $e');
     }
   }
 

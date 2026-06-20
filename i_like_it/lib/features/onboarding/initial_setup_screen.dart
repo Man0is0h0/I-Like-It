@@ -105,6 +105,66 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
   // Checkbox state (Signup only)
   bool _termsAccepted = false;
 
+  void _showErrorSnackBar(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.error_outline_rounded, color: Colors.white),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: Colors.red.shade700,
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(16),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        elevation: 6,
+      ),
+    );
+  }
+
+  void _showSuccessSnackBar(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle_outline_rounded, color: Colors.white),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: Colors.green.shade600,
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(16),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        elevation: 6,
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _usernameDebounce?.cancel();
@@ -153,23 +213,15 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
                   borderRadius: BorderRadius.circular(100),
                   height: 100,
                   width: 100,
-                  padding: const EdgeInsets.all(20),
-                  child: Icon(
-                    Icons.favorite_rounded,
-                    size: 56,
-                    color: colorScheme.primary,
+                  padding: const EdgeInsets.all(12),
+                  child: Image.asset(
+                    theme.brightness == Brightness.light
+                        ? 'assets/light_logo_transparent.png'
+                        : 'assets/native_splash_transparent.png',
+                    fit: BoxFit.contain,
                   ),
                 ),
-                const SizedBox(height: 24),
-                Text(
-                  'I Like It',
-                  style: theme.textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: colorScheme.onSurface,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 16),
                 Text(
                   'Keep track of links and folders you like, synced securely.',
                   style: theme.textTheme.bodyMedium?.copyWith(
@@ -290,12 +342,6 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
           decoration: InputDecoration(
             labelText: 'Email Address',
             errorText: _emailErrorText,
-            filled: true,
-            fillColor: theme.cardTheme.color?.withOpacity(0.5),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
-            ),
             prefixIcon: const Icon(Icons.email_outlined),
           ),
           keyboardType: TextInputType.emailAddress,
@@ -307,12 +353,6 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
           style: theme.textTheme.bodyMedium,
           decoration: InputDecoration(
             labelText: 'Password',
-            filled: true,
-            fillColor: theme.cardTheme.color?.withOpacity(0.5),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
-            ),
             prefixIcon: const Icon(Icons.lock_outline_rounded),
             suffixIcon: IconButton(
               icon: Icon(
@@ -409,12 +449,6 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
               decoration: InputDecoration(
                 labelText: 'Username',
                 errorText: errorText,
-                filled: true,
-                fillColor: theme.cardTheme.color?.withOpacity(0.5),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
                 prefixIcon: const Icon(Icons.person_outline),
                 suffixIcon: suffixIcon,
               ),
@@ -430,12 +464,6 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
           decoration: InputDecoration(
             labelText: 'Email Address',
             errorText: _emailErrorText,
-            filled: true,
-            fillColor: theme.cardTheme.color?.withOpacity(0.5),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
-            ),
             prefixIcon: const Icon(Icons.email_outlined),
           ),
           keyboardType: TextInputType.emailAddress,
@@ -448,12 +476,6 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
           style: theme.textTheme.bodyMedium,
           decoration: InputDecoration(
             labelText: 'Password',
-            filled: true,
-            fillColor: theme.cardTheme.color?.withOpacity(0.5),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
-            ),
             prefixIcon: const Icon(Icons.lock_outline_rounded),
             suffixIcon: IconButton(
               icon: Icon(
@@ -472,12 +494,6 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
           style: theme.textTheme.bodyMedium,
           decoration: InputDecoration(
             labelText: 'Confirm Password',
-            filled: true,
-            fillColor: theme.cardTheme.color?.withOpacity(0.5),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
-            ),
             prefixIcon: const Icon(Icons.lock_outline_rounded),
             suffixIcon: IconButton(
               icon: Icon(
@@ -598,12 +614,6 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
                     style: theme.textTheme.bodyMedium,
                     decoration: InputDecoration(
                       labelText: 'Email Address',
-                      filled: true,
-                      fillColor: theme.cardTheme.color?.withOpacity(0.5),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
-                      ),
                     ),
                     keyboardType: TextInputType.emailAddress,
                   ),
@@ -641,13 +651,8 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
                                 );
                             if (mounted) {
                               Navigator.pop(context);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'Reset link sent! Please check your email inbox.',
-                                  ),
-                                  backgroundColor: Colors.green,
-                                ),
+                              _showSuccessSnackBar(
+                                'Reset link sent! Please check your email inbox.',
                               );
                             }
                           } catch (e) {
@@ -766,21 +771,10 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
         if (e.message.toLowerCase().contains('invalid login credentials')) {
           errorMessage = 'Invalid email or password. Please try again.';
         }
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(errorMessage), backgroundColor: Colors.red),
-          );
-        }
+        _showErrorSnackBar(errorMessage);
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Login failed: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      _showErrorSnackBar('Login failed: $e');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -855,14 +849,7 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
               _isLoading = false;
               _isUsernameAvailable = false;
             });
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text(
-                  'This username is already taken. Please choose another.',
-                ),
-                backgroundColor: Colors.red,
-              ),
-            );
+            _showErrorSnackBar('This username is already taken. Please choose another.');
           }
           return;
         }
@@ -876,14 +863,7 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
 
       if (emailExists) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'This email address is already registered. Please log in instead.',
-              ),
-              backgroundColor: Colors.red,
-            ),
-          );
+          _showErrorSnackBar('This email address is already registered. Please log in instead.');
         }
         setState(() => _isLoading = false);
         return;
@@ -925,20 +905,9 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
         errorMessage =
             'This email address is already registered. Please log in instead.';
       }
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(errorMessage), backgroundColor: Colors.red),
-        );
-      }
+      _showErrorSnackBar(errorMessage);
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Sign up failed: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      _showErrorSnackBar('Sign up failed: $e');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -988,12 +957,6 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
                       labelText: 'Verification Code',
                       hintText: 'Enter code',
                       counterText: '',
-                      filled: true,
-                      fillColor: theme.cardTheme.color?.withOpacity(0.5),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
-                      ),
                       prefixIcon: const Icon(Icons.pin_outlined),
                     ),
                   ),
@@ -1010,13 +973,8 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
                                   email: email,
                                 );
                                 if (mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                        'A new verification code has been sent!',
-                                      ),
-                                      backgroundColor: Colors.green,
-                                    ),
+                                  _showSuccessSnackBar(
+                                    'A new verification code has been sent!',
                                   );
                                 }
                               } catch (e) {
@@ -1115,23 +1073,11 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
                                 errorMessage =
                                     'The verification code has expired or is invalid. Please request a new one.';
                               }
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(errorMessage),
-                                  backgroundColor: Colors.red,
-                                ),
-                              );
+                              _showErrorSnackBar(errorMessage);
                             }
                           } catch (e) {
                             if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'An unexpected error occurred. Please try again.',
-                                  ),
-                                  backgroundColor: Colors.red,
-                                ),
-                              );
+                              _showErrorSnackBar('An unexpected error occurred. Please try again.');
                             }
                           } finally {
                             setDialogState(() => isVerifying = false);
@@ -1160,3 +1106,4 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
     );
   }
 }
+
