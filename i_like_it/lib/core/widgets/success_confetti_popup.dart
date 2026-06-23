@@ -129,13 +129,13 @@ class _SuccessConfettiDialogState extends State<_SuccessConfettiDialog>
 
   @override
   Widget build(BuildContext context) {
-    const luxuryColors = [
-      Color(0xFFFFD700), // Gold
-      Color(0xFFE5B80B), // Metallic Gold
-      Color(0xFFB76E79), // Rose Gold
-      Color(0xFFF7E7CE), // Champagne
-      Color(0xFFC0C0C0), // Silver
-      Color(0xFFD4AF37), // Metallic Sun
+    const themeColors = [
+      AppTheme.primaryColor,
+      AppTheme.primaryDark,
+      AppTheme.successColor,
+      Color(0xFF26973C),
+      Color(0xFFA5D6A7),
+      Color(0xFF1B5E20),
     ];
 
     return Scaffold(
@@ -162,7 +162,7 @@ class _SuccessConfettiDialogState extends State<_SuccessConfettiDialog>
                     color: AppTheme.surfaceColor,
                     borderRadius: BorderRadius.circular(24),
                     border: Border.all(
-                      color: const Color(0xFFFFD700).withOpacity(0.3),
+                      color: AppTheme.primaryColor.withOpacity(0.3),
                       width: 1.5,
                     ),
                     boxShadow: [
@@ -172,7 +172,7 @@ class _SuccessConfettiDialogState extends State<_SuccessConfettiDialog>
                         offset: const Offset(0, 15),
                       ),
                       BoxShadow(
-                        color: const Color(0xFFFFD700).withOpacity(0.15),
+                        color: AppTheme.primaryColor.withOpacity(0.15),
                         blurRadius: 20,
                         spreadRadius: -5,
                       ),
@@ -187,8 +187,8 @@ class _SuccessConfettiDialogState extends State<_SuccessConfettiDialog>
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             colors: [
-                              const Color(0xFFFFD700).withOpacity(0.2),
-                              const Color(0xFFB76E79).withOpacity(0.1),
+                              AppTheme.primaryColor.withOpacity(0.2),
+                              AppTheme.successColor.withOpacity(0.1),
                             ],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
@@ -197,7 +197,7 @@ class _SuccessConfettiDialogState extends State<_SuccessConfettiDialog>
                         ),
                         child: const Icon(
                           Icons.check_circle_rounded,
-                          color: Color(0xFFD4AF37),
+                          color: AppTheme.primaryColor,
                           size: 48,
                         ),
                       ),
@@ -205,7 +205,7 @@ class _SuccessConfettiDialogState extends State<_SuccessConfettiDialog>
                       Text(
                         widget.title,
                         style: AppTheme.heading3.copyWith(
-                          color: const Color(0xFFD4AF37),
+                          color: AppTheme.primaryColor,
                           fontWeight: FontWeight.w800,
                           letterSpacing: 0.5,
                         ),
@@ -242,7 +242,7 @@ class _SuccessConfettiDialogState extends State<_SuccessConfettiDialog>
                     minBlastForce: 20,
                     gravity: 0.1,
                     particleDrag: 0.05,
-                    colors: luxuryColors,
+                    colors: themeColors,
                     createParticlePath: drawStar,
                   ),
                 ),
@@ -257,7 +257,7 @@ class _SuccessConfettiDialogState extends State<_SuccessConfettiDialog>
                     minBlastForce: 20,
                     gravity: 0.1,
                     particleDrag: 0.05,
-                    colors: luxuryColors,
+                    colors: themeColors,
                     createParticlePath: drawStar,
                   ),
                 ),
@@ -269,7 +269,7 @@ class _SuccessConfettiDialogState extends State<_SuccessConfettiDialog>
                     emissionFrequency: 0.05,
                     numberOfParticles: 20,
                     gravity: 0.05,
-                    colors: luxuryColors,
+                    colors: themeColors,
                   ),
                 ),
               ],
