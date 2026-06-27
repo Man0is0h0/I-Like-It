@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:ui';
 import 'package:sqflite/sqflite.dart';
 import '../../core/database/database_helper.dart';
 import '../../core/models/link_model.dart';
@@ -220,7 +221,9 @@ class _AddLinkDialogState extends State<AddLinkDialog> {
       fontSize: 14,
     );
 
-    return AlertDialog(
+    return BackdropFilter(
+      filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+      child: AlertDialog(
       title: const Text('Add Link'),
       content: TextField(
         controller: _controller,
@@ -269,7 +272,7 @@ class _AddLinkDialogState extends State<AddLinkDialog> {
               : const Text('Save'),
         ),
       ],
-    );
+    ));
   }
 }
 
@@ -308,7 +311,9 @@ class _DetailsDialogState extends State<_DetailsDialog> {
       fontSize: 14,
     );
 
-    return AlertDialog(
+    return BackdropFilter(
+      filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+      child: AlertDialog(
       title: const Text('Link Details'),
       content: SingleChildScrollView(
         child: Column(
@@ -399,6 +404,6 @@ class _DetailsDialogState extends State<_DetailsDialog> {
           child: const Text('Save'),
         ),
       ],
-    );
+    ));
   }
 }

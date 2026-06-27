@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:ui';
 import '../../core/database/database_helper.dart';
 import '../../core/models/link_model.dart';
 import '../../theme/app_theme.dart';
@@ -61,7 +62,9 @@ class _EditLinkDialogState extends State<EditLinkDialog> {
       fontSize: 14,
     );
 
-    return AlertDialog(
+    return BackdropFilter(
+      filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+      child: AlertDialog(
       title: const Text('Edit Link'),
       content: SingleChildScrollView(
         child: Column(
@@ -161,6 +164,6 @@ class _EditLinkDialogState extends State<EditLinkDialog> {
               : const Text('Save'),
         ),
       ],
-    );
+    ));
   }
 }

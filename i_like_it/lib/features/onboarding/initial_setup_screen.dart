@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -24,60 +25,6 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
 
   // Validation state
   String? _emailErrorText;
-  Timer? _usernameDebounce;
-  bool _isCheckingUsername = false;
-  bool? _isUsernameAvailable; // null = untouched, true = valid, false = taken
-  String _lastCheckedUsername = '';
-
-  void _onUsernameChanged(String username) {
-    final val = username.trim();
-    if (val.isEmpty) {
-      setState(() {
-        _isUsernameAvailable = null;
-        _isCheckingUsername = false;
-        _lastCheckedUsername = '';
-      });
-      _usernameDebounce?.cancel();
-      return;
-    }
-
-    setState(() {
-      _isCheckingUsername = true;
-      _isUsernameAvailable = null;
-    });
-
-    _usernameDebounce?.cancel();
-    _usernameDebounce = Timer(const Duration(milliseconds: 600), () {
-      _checkUsernameAvailability(val);
-    });
-  }
-
-  Future<void> _checkUsernameAvailability(String username) async {
-    if (username.isEmpty || !mounted) return;
-    try {
-      final exists = await Supabase.instance.client.rpc(
-        'check_username_exists',
-        params: {'username_to_check': username},
-      );
-
-      if (mounted && _usernameController.text.trim() == username) {
-        setState(() {
-          _isUsernameAvailable = !(exists as bool);
-          _isCheckingUsername = false;
-          _lastCheckedUsername = username;
-        });
-      }
-    } catch (e) {
-      if (mounted && _usernameController.text.trim() == username) {
-        setState(() {
-          _isCheckingUsername = false;
-          _isUsernameAvailable =
-              null; // Don't show error to disrupt, just don't show available
-        });
-        print('Error checking username: $e');
-      }
-    }
-  }
 
   void _validateEmail(String value) {
     if (value.isEmpty) {
@@ -167,7 +114,6 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
 
   @override
   void dispose() {
-    _usernameDebounce?.cancel();
     _emailController.dispose();
     _passwordController.dispose();
     _usernameController.dispose();
@@ -264,7 +210,7 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
                                   ),
                                   child: Center(
                                     child: Text(
-                                      'Login',
+                                      'Log In',
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
                                         color: _isLogin
@@ -341,6 +287,7 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
           style: theme.textTheme.bodyMedium,
           decoration: InputDecoration(
             labelText: 'Email Address',
+            labelStyle: TextStyle(color: colorScheme.onSurfaceVariant.withOpacity(0.5)),
             errorText: _emailErrorText,
             prefixIcon: const Icon(Icons.email_outlined),
           ),
@@ -353,6 +300,7 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
           style: theme.textTheme.bodyMedium,
           decoration: InputDecoration(
             labelText: 'Password',
+            labelStyle: TextStyle(color: colorScheme.onSurfaceVariant.withOpacity(0.5)),
             prefixIcon: const Icon(Icons.lock_outline_rounded),
             suffixIcon: IconButton(
               icon: Icon(
@@ -419,41 +367,14 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
         ),
         const SizedBox(height: 16),
         // Username field
-        Builder(
-          builder: (context) {
-            Widget? suffixIcon;
-            if (_isCheckingUsername) {
-              suffixIcon = const Padding(
-                padding: EdgeInsets.all(12.0),
-                child: SizedBox(
-                  height: 16,
-                  width: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-              );
-            } else if (_isUsernameAvailable == true) {
-              suffixIcon = const Icon(Icons.check_circle, color: Colors.green);
-            } else if (_isUsernameAvailable == false) {
-              suffixIcon = const Icon(Icons.cancel, color: Colors.red);
-            }
-
-            String? errorText;
-            if (_isUsernameAvailable == false) {
-              errorText = 'This username is already taken';
-            }
-
-            return TextField(
-              controller: _usernameController,
-              onChanged: _onUsernameChanged,
-              style: theme.textTheme.bodyMedium,
-              decoration: InputDecoration(
-                labelText: 'Username',
-                errorText: errorText,
-                prefixIcon: const Icon(Icons.person_outline),
-                suffixIcon: suffixIcon,
-              ),
-            );
-          },
+        TextField(
+          controller: _usernameController,
+          style: theme.textTheme.bodyMedium,
+          decoration: InputDecoration(
+            labelText: 'Username',
+            labelStyle: TextStyle(color: colorScheme.onSurfaceVariant.withOpacity(0.5)),
+            prefixIcon: const Icon(Icons.person_outline),
+          ),
         ),
         const SizedBox(height: 16),
         // Email field
@@ -463,6 +384,7 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
           style: theme.textTheme.bodyMedium,
           decoration: InputDecoration(
             labelText: 'Email Address',
+            labelStyle: TextStyle(color: colorScheme.onSurfaceVariant.withOpacity(0.5)),
             errorText: _emailErrorText,
             prefixIcon: const Icon(Icons.email_outlined),
           ),
@@ -476,6 +398,7 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
           style: theme.textTheme.bodyMedium,
           decoration: InputDecoration(
             labelText: 'Password',
+            labelStyle: TextStyle(color: colorScheme.onSurfaceVariant.withOpacity(0.5)),
             prefixIcon: const Icon(Icons.lock_outline_rounded),
             suffixIcon: IconButton(
               icon: Icon(
@@ -494,6 +417,7 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
           style: theme.textTheme.bodyMedium,
           decoration: InputDecoration(
             labelText: 'Confirm Password',
+            labelStyle: TextStyle(color: colorScheme.onSurfaceVariant.withOpacity(0.5)),
             prefixIcon: const Icon(Icons.lock_outline_rounded),
             suffixIcon: IconButton(
               icon: Icon(
@@ -599,8 +523,10 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
         bool dialogLoading = false;
         return StatefulBuilder(
           builder: (context, setDialogState) {
-            return AlertDialog(
-              title: const Text('Reset Password'),
+            return BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+              child: AlertDialog(
+                title: const Text('Reset Password'),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -677,6 +603,7 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
                       : const Text('Send Reset Link'),
                 ),
               ],
+            ),
             );
           },
         );
@@ -836,25 +763,6 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // Final synchronous validation for username to prevent race conditions
-      if (_isUsernameAvailable == false ||
-          (_isUsernameAvailable == null && username.isNotEmpty)) {
-        final bool usernameExists = await Supabase.instance.client.rpc(
-          'check_username_exists',
-          params: {'username_to_check': username},
-        );
-        if (usernameExists) {
-          if (mounted) {
-            setState(() {
-              _isLoading = false;
-              _isUsernameAvailable = false;
-            });
-            _showErrorSnackBar('This username is already taken. Please choose another.');
-          }
-          return;
-        }
-      }
-
       // Check if email already exists in the database
       final bool emailExists = await Supabase.instance.client.rpc(
         'check_email_exists',
@@ -926,8 +834,10 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
         bool isVerifying = false;
         return StatefulBuilder(
           builder: (context, setDialogState) {
-            return AlertDialog(
-              backgroundColor: theme.dialogBackgroundColor ?? Colors.grey[900],
+            return BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+              child: AlertDialog(
+                backgroundColor: theme.dialogBackgroundColor ?? Colors.grey[900],
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
               ),
@@ -1099,6 +1009,7 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
                       : const Text('Verify'),
                 ),
               ],
+            ),
             );
           },
         );

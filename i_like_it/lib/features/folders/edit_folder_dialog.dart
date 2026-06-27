@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'dart:ui';
 import '../../core/database/database_helper.dart';
 import '../../core/models/folder_model.dart';
 import '../../core/widgets/folder_icon_picker.dart';
 import '../../theme/app_theme.dart';
-
+import '../../core/services/folder_classification_service.dart';
 class EditFolderDialog extends StatefulWidget {
   final Folder folder;
 
@@ -70,6 +71,10 @@ class _EditFolderDialogState extends State<EditFolderDialog> {
       'icon': _selectedIcon,
     });
 
+    if (name != widget.folder.name) {
+      await FolderClassificationService.instance.classifyFolder(widget.folder.id, name);
+    }
+
     if (mounted) Navigator.pop(context, true);
   }
 
@@ -87,7 +92,9 @@ class _EditFolderDialogState extends State<EditFolderDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
+    return BackdropFilter(
+      filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+      child: AlertDialog(
       title: const Text('Edit Folder'),
       content: SingleChildScrollView(
         child: Column(
@@ -181,7 +188,7 @@ class _EditFolderDialogState extends State<EditFolderDialog> {
               : const Text('Save'),
         ),
       ],
-    );
+    ));
   }
 
   IconData _parseIcon(String iconCode) {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:ui';
 import '../../core/models/folder_model.dart';
 import '../../core/utils/folder_suggester.dart';
 import '../../theme/app_theme.dart';
@@ -61,7 +62,9 @@ class _FolderSuggestionDialogState extends State<FolderSuggestionDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
+    return BackdropFilter(
+      filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+      child: AlertDialog(
       title: const Text('Select or Create Folder'),
       content: FutureBuilder<SuggestionResult>(
         future: suggestionFuture,
@@ -329,7 +332,7 @@ class _FolderSuggestionDialogState extends State<FolderSuggestionDialog> {
           ),
         ),
       ],
-    );
+    ));
   }
 
   void _createFolderWithName(String name) async {

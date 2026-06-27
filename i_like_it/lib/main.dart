@@ -48,9 +48,6 @@ Future<void> main() async {
     SyncManager.instance.initialize(remoteDataSource);
   }
 
-  // Initialize AI
-  FolderClassificationService.instance.initialize(); // New Robust Service
-
   runApp(ILikeItApp(isBackedUp: isBackedUp));
 }
 
@@ -133,6 +130,7 @@ class _ILikeItAppState extends State<ILikeItApp> {
       valueListenable: ThemeManager.instance.themeModeNotifier,
       builder: (context, themeMode, child) {
         return MaterialApp(
+          title: 'iLikeIt',
           navigatorKey: ILikeItApp.navigatorKey,
           debugShowCheckedModeBanner: false,
           theme: AppTheme.lightTheme,

@@ -11,13 +11,11 @@ class AppConfig {
   // Environment Keys
   static const String _kSupabaseUrl = 'SUPABASE_URL';
   static const String _kSupabaseAnonKey = 'SUPABASE_ANON_KEY';
-  static const String _kGeminiApiKey = 'GEMINI_API_KEY';
   static const String _kPrivacyPolicyUrl = 'PRIVACY_POLICY_URL';
   static const String _kTermsUseUrl = 'TERMS_USE_URL';
 
   late final String supabaseUrl;
   late final String supabaseAnonKey;
-  late final String geminiApiKey;
   late final String privacyPolicyUrl;
   late final String termsUseUrl;
 
@@ -31,7 +29,6 @@ class AppConfig {
 
     supabaseUrl = _getRequired(_kSupabaseUrl);
     supabaseAnonKey = _getRequired(_kSupabaseAnonKey);
-    geminiApiKey = dotenv.env[_kGeminiApiKey] ?? '';
     privacyPolicyUrl = dotenv.env[_kPrivacyPolicyUrl] ?? '';
     termsUseUrl = dotenv.env[_kTermsUseUrl] ?? '';
 

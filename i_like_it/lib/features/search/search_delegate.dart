@@ -53,14 +53,14 @@ class GlobalSearchDelegate extends SearchDelegate {
                 child: Icon(
                   Icons.search,
                   size: 64,
-                  color: AppTheme.textLight.withOpacity(0.5),
+                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
                 ),
               ),
               const SizedBox(height: 24),
-              const Text(
+              Text(
                 'Search folders and links',
                 style: TextStyle(
-                  color: AppTheme.textSecondary,
+                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
                 ),
@@ -204,15 +204,36 @@ class GlobalSearchDelegate extends SearchDelegate {
                         horizontal: 16,
                         vertical: 4,
                       ),
-                      leading: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: AppTheme.surfaceColor,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: AppTheme.borderColor),
-                        ),
-                        child: const Icon(Icons.link, size: 20),
-                      ),
+                      leading: link.imageUrl != null && link.imageUrl!.isNotEmpty
+                          ? ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.network(
+                                link.imageUrl!,
+                                width: 40,
+                                height: 40,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => Container(
+                                  width: 40,
+                                  height: 40,
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.surfaceColor,
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: AppTheme.borderColor),
+                                  ),
+                                  child: const Icon(Icons.link, size: 20),
+                                ),
+                              ),
+                            )
+                          : Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: AppTheme.surfaceColor,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: AppTheme.borderColor),
+                              ),
+                              child: const Icon(Icons.link, size: 20),
+                            ),
                       title: Text(
                         link.title,
                         maxLines: 1,
@@ -223,8 +244,8 @@ class GlobalSearchDelegate extends SearchDelegate {
                         link.url,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: AppTheme.textSecondary,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
                           fontSize: 12,
                         ),
                       ),

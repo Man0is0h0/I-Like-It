@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:ui';
 import '../../core/database/database_helper.dart';
 import '../../core/models/folder_model.dart';
 import '../../core/widgets/folder_icon_picker.dart';
@@ -103,7 +104,9 @@ class _AddFolderDialogState extends State<AddFolderDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
+    return BackdropFilter(
+      filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+      child: AlertDialog(
       title: const Text('New Folder'),
       content: SingleChildScrollView(
         child: Column(
@@ -197,7 +200,7 @@ class _AddFolderDialogState extends State<AddFolderDialog> {
               : const Text('Create'),
         ),
       ],
-    );
+    ));
   }
 
   IconData _parseIcon(String iconCode) {

@@ -1,157 +1,157 @@
 import 'dart:convert';
-import 'package:http/http.dart' as http;
+import 'package:flutter/services.dart' show rootBundle;
 import '../database/database_helper.dart';
 import '../sync/sync_manager.dart';
-import '../../config/app_config.dart';
+
+class ClassificationResult {
+  final String category;
+  final int confidence;
+
+  ClassificationResult(this.category, this.confidence);
+
+  Map<String, dynamic> toJson() => {
+        'category': category,
+        'confidence': confidence,
+      };
+}
 
 class FolderClassificationService {
   static final FolderClassificationService instance =
       FolderClassificationService._();
   FolderClassificationService._();
 
-  String? get _apiKey => AppConfig.instance.geminiApiKey;
-
-  String? _validatedModelEndpoint;
+  Map<String, Map<String, int>>? _rules;
   bool _isInitializing = false;
+  
+  // The threshold below which we fallback to 'other'
+  static const int _confidenceThreshold = 15;
 
-  // Expanded, specific categories for better analytics
-  static const List<String> allowedCategories = [
-    // Tech & Dev
-    'coding', 'web_development', 'mobile_apps', 'ai_ml', 'data_science',
-    'cloud_computing', 'hardware', 'cybersecurity', 'tech_news',
-
-    // Education & Career
-    'courses', 'university', 'research', 'books', 'career', 'certificates',
-
-    // Entertainment
-    'movies', 'series', 'anime', 'gaming', 'music', 'podcasts', 'youtube',
-
-    // Lifestyle
-    'fitness', 'health', 'recipes', 'travel', 'fashion', 'home_decor',
-
-    // Finance
-    'investing', 'crypto', 'banking', 'business', 'real_estate',
-
-    // Misc
-    'news', 'social_media', 'shopping', 'personal', 'project', 'other',
-  ];
-
-  void initialize() {
-    // Lazy init via ensureInitialized
-  }
-
-  Future<String?> _ensureModelInitialized() async {
-    if (_validatedModelEndpoint != null) return _validatedModelEndpoint;
-    if (_apiKey == null) return null;
+  /// Loads the classification rules from JSON if not already loaded.
+  Future<void> _ensureRulesLoaded() async {
+    if (_rules != null) return;
     if (_isInitializing) {
-      // Simple spin wait
-      await Future.delayed(const Duration(milliseconds: 500));
-      return _validatedModelEndpoint;
+      await Future.delayed(const Duration(milliseconds: 100));
+      return _ensureRulesLoaded();
     }
 
     _isInitializing = true;
     try {
-      print('AI Service: discovering available models...');
-      final url = Uri.parse(
-        'https://generativelanguage.googleapis.com/v1beta/models?key=$_apiKey',
-      );
-      final response = await http.get(url);
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final models = (data['models'] as List).cast<Map<String, dynamic>>();
-
-        // Prioritize faster models
-        final preferences = [
-          'models/gemini-2.5-flash',
-          'models/gemini-2.5-pro',
-          'models/gemini-1.0-pro',
-          'models/gemini-pro',
-        ];
-
-        for (final pref in preferences) {
-          final found = models.firstWhere(
-            (m) =>
-                m['name'] == pref &&
-                (m['supportedGenerationMethods'] as List).contains(
-                  'generateContent',
-                ),
-            orElse: () => {},
-          );
-
-          if (found.isNotEmpty) {
-            print('AI Service: Selected model ${found['name']}');
-            _validatedModelEndpoint =
-                'https://generativelanguage.googleapis.com/v1beta/${found['name']}:generateContent';
-            return _validatedModelEndpoint;
-          }
-        }
-
-        // Fallback: take *any* that supports generateContent
-        final anyModel = models.firstWhere(
-          (m) =>
-              (m['name'] as String).contains('gemini') &&
-              (m['supportedGenerationMethods'] as List).contains(
-                'generateContent',
-              ),
-          orElse: () => {},
-        );
-
-        if (anyModel.isNotEmpty) {
-          print('AI Service: Fallback model ${anyModel['name']}');
-          _validatedModelEndpoint =
-              'https://generativelanguage.googleapis.com/v1beta/${anyModel['name']}:generateContent';
-          return _validatedModelEndpoint;
-        }
-      } else {
-        print(
-          'AI Service: Failed to list models. HTTP ${response.statusCode}: ${response.body}',
-        );
+      final jsonString =
+          await rootBundle.loadString('assets/classification_rules.json');
+      final decoded = jsonDecode(jsonString) as Map<String, dynamic>;
+      
+      _rules = {};
+      for (final entry in decoded.entries) {
+        final category = entry.key;
+        final keywordsMap = entry.value as Map<String, dynamic>;
+        _rules![category] = keywordsMap.map((k, v) => MapEntry(k, v as int));
       }
+      print('FolderClassificationService: Rules loaded successfully.');
     } catch (e) {
-      print('AI Service: Model discovery error: $e');
+      print('FolderClassificationService: Failed to load rules. Error: $e');
+      _rules = {}; // empty fallback
     } finally {
       _isInitializing = false;
     }
+  }
 
-    // Ultimate fallback if discovery fails (maybe API key has restriction on ListModels)
-    _validatedModelEndpoint =
-        'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
-    return _validatedModelEndpoint;
+  /// Normalizes and tokenizes a folder name for exact word matching
+  List<String> _tokenize(String text) {
+    // Lowercase
+    String normalized = text.toLowerCase();
+    // Remove punctuation
+    normalized = normalized.replaceAll(RegExp(r'[^\w\s]'), ' ');
+    // Split into tokens
+    return normalized.split(RegExp(r'\s+')).where((t) => t.isNotEmpty).toList();
+  }
+
+  /// Calculates the classification score for a given folder name
+  Future<ClassificationResult> _calculateScore(String folderName) async {
+    await _ensureRulesLoaded();
+
+    if (_rules == null || _rules!.isEmpty) {
+      return ClassificationResult('other', 0);
+    }
+
+    final tokens = _tokenize(folderName);
+    final normalizedString = tokens.join(' ');
+
+    if (tokens.isEmpty) {
+      return ClassificationResult('other', 0);
+    }
+
+    String bestCategory = 'other';
+    int maxScore = 0;
+
+    for (final entry in _rules!.entries) {
+      final category = entry.key;
+      final keywords = entry.value;
+
+      int categoryScore = 0;
+
+      for (final keywordEntry in keywords.entries) {
+        final keyword = keywordEntry.key.toLowerCase();
+        final weight = keywordEntry.value;
+
+        // Check for exact phrase match
+        if (keyword.contains(' ')) {
+          // It's a phrase, check if the normalized string contains it bounded by word boundaries
+          final regex = RegExp(r'\b' + RegExp.escape(keyword) + r'\b');
+          if (regex.hasMatch(normalizedString)) {
+            categoryScore += weight;
+          }
+        } else {
+          // Single word, exact match
+          if (tokens.contains(keyword)) {
+            categoryScore += weight;
+          }
+        }
+      }
+
+      if (categoryScore > maxScore) {
+        maxScore = categoryScore;
+        bestCategory = category;
+      }
+    }
+
+    if (maxScore < _confidenceThreshold) {
+      return ClassificationResult('other', maxScore);
+    }
+
+    return ClassificationResult(bestCategory, maxScore);
   }
 
   /// Classifies a single folder and updates the DB.
-  Future<void> classifyFolder(dynamic folderId, String folderName) async {
-    if (_apiKey == null) return;
-
+  /// Preserves the Future API design as requested.
+  Future<ClassificationResult> classifyFolder(
+      dynamic folderId, String folderName) async {
     try {
-      final category = await _getCategoryWithRetry(folderName);
-      if (category != null) {
-        // Update Local DB
-        await DatabaseHelper.instance.updateFolderSystemCategory(
-          folderId,
-          category,
-        );
-        print(
-          'FolderClassificationService: Updated local folder $folderId with "$category"',
-        );
+      final result = await _calculateScore(folderName);
+      
+      // Update Local DB
+      await DatabaseHelper.instance.updateFolderSystemCategory(
+        folderId,
+        result.category,
+      );
+      print(
+        'FolderClassificationService: Classified "$folderName" as "${result.category}" (Confidence: ${result.confidence})',
+      );
 
-        // Trigger Sync to push to Cloud
-        SyncManager.instance.sync();
-      }
+      // Trigger Sync to push to Cloud
+      SyncManager.instance.sync();
+      
+      return result;
     } catch (e) {
       print(
         'FolderClassificationService: Failed to classify "$folderName": $e',
       );
+      return ClassificationResult('other', 0);
     }
   }
 
   /// Batch classifies uncategorized folders
   Future<int> runBatchMigration() async {
-    if (_apiKey == null) throw Exception('API Key not initialized');
-
-    // Ensure we have a valid endpoint before starting batch
-    await _ensureModelInitialized();
+    await _ensureRulesLoaded();
 
     final uncategorized = await SyncManager.instance.remoteDataSource
         .fetchFoldersWithoutSystemCategory();
@@ -160,7 +160,7 @@ class FolderClassificationService {
     int updatedCount = 0;
 
     // Process in small batches
-    final batches = _chunkList(uncategorized, 10);
+    final batches = _chunkList(uncategorized, 50);
 
     for (final batch in batches) {
       final updates = <Map<String, dynamic>>[];
@@ -169,14 +169,9 @@ class FolderClassificationService {
         final name = folder['name'] as String;
         final id = folder['id'];
 
-        // Delay to respect free tier rate limits (approx 15-30 RPM)
-        await Future.delayed(const Duration(milliseconds: 1500));
-
         try {
-          final category = await _getCategoryWithRetry(name);
-          if (category != null) {
-            updates.add({'id': id, 'system_category': category});
-          }
+          final result = await _calculateScore(name);
+          updates.add({'id': id, 'system_category': result.category});
         } catch (e) {
           print('Skipping folder $id ($name) due to error: $e');
         }
@@ -191,93 +186,6 @@ class FolderClassificationService {
     }
 
     return updatedCount;
-  }
-
-  Future<String?> _getCategoryWithRetry(
-    String folderName, {
-    int retries = 2,
-  }) async {
-    for (int i = 0; i <= retries; i++) {
-      try {
-        return await _callGemini(folderName);
-      } catch (e) {
-        if (i == retries) {
-          print(
-            'Gemini HTTP failed "$folderName" after $retries retries. Error: $e',
-          );
-          return 'other';
-        }
-        await Future.delayed(Duration(milliseconds: 500 * (i + 1)));
-      }
-    }
-    return null;
-  }
-
-  Future<String> _callGemini(String folderName) async {
-    if (folderName.trim().isEmpty) return 'personal';
-
-    final endpoint = await _ensureModelInitialized();
-    if (endpoint == null) throw Exception('No valid AI model endpoint found');
-
-    final prompt =
-        '''
-Classify the following folder name into exactly ONE of these categories:
-${allowedCategories.join(', ')}.
-
-Folder name: "$folderName"
-
-Respond with ONLY the category name. No explanation. No punctuation. Lowercase.
-''';
-
-    final url = Uri.parse('$endpoint?key=$_apiKey');
-
-    final response = await http.post(
-      url,
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        "contents": [
-          {
-            "parts": [
-              {"text": prompt},
-            ],
-          },
-        ],
-      }),
-    );
-
-    if (response.statusCode != 200) {
-      throw Exception('HTTP ${response.statusCode}: ${response.body}');
-    }
-
-    final data = jsonDecode(response.body);
-    final text =
-        data['candidates']?[0]?['content']?['parts']?[0]?['text']
-            ?.toString()
-            .trim()
-            .toLowerCase() ??
-        '';
-
-    // Clean up
-    final cleanText = text.replaceAll(RegExp(r'[^a-z]'), '');
-
-    print(
-      'AI Debug (HTTP): Input="$folderName" | Raw="$text" | Clean="$cleanText"',
-    );
-
-    if (allowedCategories.contains(cleanText)) {
-      return cleanText;
-    }
-
-    // Fuzzy fallback
-    for (final category in allowedCategories) {
-      if (text.contains(category)) {
-        print('AI Debug: Fuzzy matched "$category" for "$folderName"');
-        return category;
-      }
-    }
-
-    print('AI Debug: No match found for "$folderName". Defaulting to "other"');
-    return 'other';
   }
 
   List<List<T>> _chunkList<T>(List<T> list, int chunkSize) {
