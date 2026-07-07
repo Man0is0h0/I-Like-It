@@ -46,10 +46,17 @@ serve(async (req) => {
 <tr>
 <td align="center" style="background:linear-gradient(135deg,#20c997,#2db84d);padding:40px 20px;">
 
-<img src="https://izlahmslmpmfeecpgkav.supabase.co/storage/v1/object/public/assets/logo.png"
-alt="iLikeIt Logo"
-width="85"
-style="display:block;background:#ffffff;padding:10px;border-radius:18px;margin-bottom:12px;">
+<table cellpadding="0" cellspacing="0" border="0" style="border-collapse:separate;border-radius:18px;background:#ffffff;margin-bottom:12px;margin-left:auto;margin-right:auto;">
+  <tr>
+    <td style="padding:10px;line-height:0;font-size:0;">
+      <img src="https://baelekmfmvlyglowofab.supabase.co/storage/v1/object/public/assets/logo.png"
+           alt="iLikeIt Logo"
+           width="65"
+           height="65"
+           style="display:block;border:0;border-radius:12px;">
+    </td>
+  </tr>
+</table>
 
 <h1 style="margin:0;color:#ffffff;font-size:26px;font-weight:800;">
 Welcome to iLikeIt!

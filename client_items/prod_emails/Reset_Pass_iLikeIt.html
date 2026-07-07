@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Verification Code - ILikeIt</title>
+<title>Reset Password - iLikeIt</title>
 </head>
 
 <body style="margin:0;padding:0;background:#f4f7fb;font-family:Arial,Helvetica,sans-serif;">
@@ -25,7 +25,7 @@
      style="display:block;margin-bottom:12px;margin-left:auto;margin-right:auto;border:0;">
 
 <h1 style="margin:0;color:#ffffff;font-size:24px;font-weight:800;">
-iLikeIt Verification
+Password Reset
 </h1>
 
 </td>
@@ -40,26 +40,26 @@ iLikeIt Verification
 </p>
 
 <p>
-Welcome to <strong>iLikeIt</strong>!
+We received a request to reset your password for your <strong>iLikeIt</strong> account.
 </p>
 
 <p>
-Your verification code is:
+You can reset your password by clicking the link below:
 </p>
 
-<!-- OTP (LEFT ALIGNED - NO CENTER ALIGNMENT) -->
-<div style="margin:15px 0;padding:15px;border:2px dashed #2db84d;border-radius:10px;background:#f4fff7;display:inline-block;">
-    <span style="font-size:26px;font-weight:800;letter-spacing:4px;color:#2db84d;">
-        {{ .Token }}
-    </span>
+<!-- RESET LINK BOX -->
+<div style="margin:15px 0;padding:12px 15px;border:1px solid #2db84d;background:#f4fff7;border-radius:10px;text-align:center;">
+    <a href="{{ .ConfirmationURL }}" style="color:#2db84d;text-decoration:none;font-weight:600;display:block;">
+        Click Here to Reset Your Password
+    </a>
 </div>
 
 <p>
-This code will expire in <strong>5 minutes</strong>.
+This link is valid for <strong>15 minutes</strong> and can be used only once for security reasons.
 </p>
 
 <p>
-If you didn’t request this, you can safely ignore this email.
+If you did not request a password reset, you can safely ignore this email. Your account remains secure.
 </p>
 
 <p>
@@ -75,9 +75,9 @@ Thanks,<br>
 </td>
 </tr>
 
-<!-- FOOTER (GRADIENT) -->
+<!-- FOOTER -->
 <tr>
-<td align="center" style="background:linear-gradient(135deg,#20c997,#2db84d);padding:20px;">
+<td align="center" style="background:linear-gradient(135deg,#20c997,#2db84d);padding:18px;">
 
 <p style="margin:0;color:#ffffff;font-size:13px;opacity:0.95;">
 iLikeIt • Save • Organize • Share

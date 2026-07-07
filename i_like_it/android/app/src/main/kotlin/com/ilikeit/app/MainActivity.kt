@@ -1,4 +1,4 @@
-package com.example.i_like_it
+package com.ilikeit.app
 
 import android.content.Intent
 import android.os.Bundle

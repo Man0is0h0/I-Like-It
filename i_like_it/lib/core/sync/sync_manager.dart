@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../database/database_helper.dart';
 import 'remote_datasource.dart';
 import '../auth/user_session_manager.dart';
@@ -68,7 +69,24 @@ class SyncManager {
       return;
     }
 
-    print('[SyncManager] Starting sync for user: $userId...');
+    // Check if Supabase auth session is active
+    final session = Supabase.instance.client.auth.currentSession;
+    if (session == null) {
+      print('[SyncManager] No active Supabase session. Sync requires authentication.');
+      return;
+    }
+    if (session.isExpired) {
+      print('[SyncManager] Supabase session expired. Attempting refresh...');
+      try {
+        await Supabase.instance.client.auth.refreshSession();
+        print('[SyncManager] Session refreshed successfully.');
+      } catch (e) {
+        print('[SyncManager] Failed to refresh session: $e');
+        return;
+      }
+    }
+
+    print('[SyncManager] Starting sync for user: $userId (session active)...');
 
     try {
       // 1. Update last_seen
@@ -89,8 +107,9 @@ class SyncManager {
 
       print('[SyncManager] Sync completed successfully.');
       _syncCompleteController.add(null);
-    } catch (e) {
+    } catch (e, st) {
       print('[SyncManager] Sync failed: $e');
+      print('[SyncManager] Stack trace: $st');
     }
   }
 
@@ -105,6 +124,7 @@ class SyncManager {
 
   Future<void> _pushFolders() async {
     final unsynced = await _local.getUnsyncedFolders();
+    print('[SyncManager] _pushFolders found ${unsynced.length} unsynced folders');
     for (var folder in unsynced) {
       try {
         final updatedAt =
@@ -121,7 +141,7 @@ class SyncManager {
         };
 
         print(
-          '[SyncManager] Pushing folder ${folder['id']} (cloud_id: ${folder['cloud_id']})',
+          '[SyncManager] Pushing folder ${folder['id']} (cloud_id: ${folder['cloud_id']}) data: $cloudData',
         );
         final response = await _remote.upsertFolder(cloudData);
         await _local.updateFolderSyncStatus(
@@ -129,9 +149,10 @@ class SyncManager {
           response['id'],
           updatedAt,
         );
-        print('[SyncManager] Successfully pushed folder ${folder['id']}');
-      } catch (e) {
-        print('[SyncManager] Error pushing folder ${folder['id']}: $e');
+        print('[SyncManager] Successfully pushed folder ${folder['id']} -> cloud_id: ${response['id']}');
+      } catch (e, st) {
+        print('[SyncManager] ERROR pushing folder ${folder['id']}: $e');
+        print('[SyncManager] Stack: $st');
       }
     }
   }
@@ -192,8 +213,9 @@ class SyncManager {
         print(
           '[SyncManager] Successfully pushed link ${link['id']}! New cloud_id: ${response['id']}',
         );
-      } catch (e) {
-        print('[SyncManager] Error pushing link ${link['id']}: $e');
+      } catch (e, st) {
+        print('[SyncManager] ERROR pushing link ${link['id']}: $e');
+        print('[SyncManager] Stack: $st');
       }
     }
   }

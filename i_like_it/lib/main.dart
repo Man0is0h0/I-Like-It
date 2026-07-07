@@ -14,6 +14,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/sync/remote_datasource.dart';
 import 'core/sync/sync_manager.dart';
 import 'core/services/folder_classification_service.dart';
+import 'core/database/database_helper.dart';
 
 import 'config/app_config.dart';
 
@@ -34,7 +35,7 @@ Future<void> main() async {
   // Initialize Theme Manager
   await ThemeManager.instance.initialize();
 
-  final isBackedUp = await UserSessionManager.isBackedUp();
+  bool isBackedUp = await UserSessionManager.isBackedUp();
 
   if (AppConfig.instance.supabaseUrl.isNotEmpty &&
       AppConfig.instance.supabaseAnonKey.isNotEmpty) {
@@ -46,6 +47,15 @@ Future<void> main() async {
     final remoteDataSource = RemoteDataSource(Supabase.instance.client);
     // Initialize Sync Manager AFTER User Session is ready
     SyncManager.instance.initialize(remoteDataSource);
+
+    // Verify session: if local secure storage says backed up but Supabase has no active user, clear local state
+    final currentUser = Supabase.instance.client.auth.currentUser;
+    if (isBackedUp && currentUser == null) {
+      print("[MAIN] Local session found, but Supabase auth session is null. Resetting session.");
+      await UserSessionManager.clearSession();
+      await DatabaseHelper.instance.clearAllData();
+      isBackedUp = false;
+    }
   }
 
   runApp(ILikeItApp(isBackedUp: isBackedUp));

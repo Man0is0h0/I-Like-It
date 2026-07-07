@@ -83,13 +83,14 @@ Make sure you have the [Supabase CLI installed](https://supabase.com/docs/guides
    ```bash
    supabase link --project-ref <your-project-ref>
    ```
-4. Set the SMTP secrets in your remote project:
+4. Set the SMTP and Gemini secrets in your remote project:
    ```bash
-   supabase secrets set SMTP_USER="support@ilikeit.co.in" SMTP_PASS="your_zoho_app_password"
+   supabase secrets set SMTP_USER="support@ilikeit.co.in" SMTP_PASS="your_zoho_app_password" GEMINI_API_KEY="your_gemini_api_key"
    ```
 5. Deploy the Edge Function:
    ```bash
    supabase functions deploy send-welcome-email --no-verify-jwt
+   supabase functions deploy classify-folders --no-verify-jwt
    ```
 
 ---

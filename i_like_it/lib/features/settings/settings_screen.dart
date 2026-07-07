@@ -272,14 +272,64 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _handleLogout() async {
+    final unsyncedFolders = await DatabaseHelper.instance.getUnsyncedFolders();
+    final unsyncedLinks = await DatabaseHelper.instance.getUnsyncedLinks();
+    final bool hasUnsynced = unsyncedFolders.isNotEmpty || unsyncedLinks.isNotEmpty;
+
+    if (!mounted) return;
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
         child: AlertDialog(
           title: const Text('Log Out?'),
-          content: const Text(
-            'Are you sure you want to log out?',
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Are you sure you want to log out?'),
+              if (hasUnsynced) ...[
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withOpacity(0.1),
+                    border: Border.all(color: Colors.red.withOpacity(0.3)),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.warning_amber_rounded, color: Colors.red),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Unsynced Changes Detected',
+                            style: TextStyle(
+                              color: Colors.red.shade700,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'You have ${unsyncedFolders.length} unsynced folder(s) and ${unsyncedLinks.length} unsynced link(s). '
+                        'Logging out will permanently wipe these from your device. If you haven\'t run the database schema fix, please execute project-backend/fix_links_foreign_key.sql in your Supabase SQL Editor to allow synchronization.',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.red.shade200
+                              : Colors.red.shade900,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
           ),
           actions: [
             TextButton(
@@ -289,8 +339,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ElevatedButton(
               onPressed: () => Navigator.pop(context, true),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).colorScheme.primary,
-                foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                backgroundColor: hasUnsynced ? Colors.red : Theme.of(context).colorScheme.primary,
+                foregroundColor: Colors.white,
               ),
               child: const Text('Log Out'),
             ),
@@ -300,11 +350,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
 
     if (confirmed == true && mounted) {
+      // Push any pending local changes to cloud before wiping
+      try {
+        await SyncManager.instance.pushLocalChanges();
+      } catch (e) {
+        print('[SETTINGS] Failed to push before logout: $e');
+      }
+
       try {
         await Supabase.instance.client.auth.signOut();
       } catch (_) {}
       await UserSessionManager.clearSession();
       await DatabaseHelper.instance.clearAllData();
+      SyncManager.instance.resetUserCreated();
 
       if (mounted) {
         Navigator.of(context).pushAndRemoveUntil(

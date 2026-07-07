@@ -1,5 +1,5 @@
--- SUPABASE DATABASE SCHEMA MASTER EXPORT
--- This file contains EVERYTHING needed to recreate the backend:
+-- SUPABASE DATABASE SCHEMA MASTER EXPORT (PRODUCTION)
+-- This file contains EVERYTHING needed to recreate the backend on your Production Supabase instance.
 -- Extensions, Tables, RLS, Triggers, RPCs, and Cron Jobs.
 
 -- 1. Enable Extensions
@@ -85,18 +85,28 @@ ALTER TABLE public.email_otps ENABLE ROW LEVEL SECURITY;
 -- 4. Create RLS Policies
 
 -- Users
+DROP POLICY IF EXISTS "Users can view own profile" ON public.users;
 CREATE POLICY "Users can view own profile" ON public.users FOR SELECT USING (auth.uid() = id);
+
+DROP POLICY IF EXISTS "Users can update own profile" ON public.users;
 CREATE POLICY "Users can update own profile" ON public.users FOR UPDATE USING (auth.uid() = id);
+
+DROP POLICY IF EXISTS "Users manage own, Admins manage all" ON public.users;
 CREATE POLICY "Users manage own, Admins manage all" ON public.users FOR ALL USING (auth.uid() = id OR (SELECT role FROM public.users WHERE id = auth.uid()) = 'admin');
 
 -- Folders
+DROP POLICY IF EXISTS "Users manage own folders, Admins manage all" ON public.folders;
 CREATE POLICY "Users manage own folders, Admins manage all" ON public.folders FOR ALL USING (user_id = auth.uid() OR (SELECT role FROM public.users WHERE id = auth.uid()) = 'admin');
 
 -- Links
+DROP POLICY IF EXISTS "Users manage own links, Admins manage all" ON public.links;
 CREATE POLICY "Users manage own links, Admins manage all" ON public.links FOR ALL USING (user_id = auth.uid() OR (SELECT role FROM public.users WHERE id = auth.uid()) = 'admin');
 
 -- Logs & OTPs (Service Role / Admin only)
+DROP POLICY IF EXISTS "Admins can view debug logs" ON public.debug_logs;
 CREATE POLICY "Admins can view debug logs" ON public.debug_logs FOR SELECT USING (auth.jwt()->>'role' = 'service_role' OR (SELECT role FROM public.users WHERE id = auth.uid()) = 'admin');
+
+DROP POLICY IF EXISTS "Service Role manages OTPs" ON public.email_otps;
 CREATE POLICY "Service Role manages OTPs" ON public.email_otps FOR ALL USING (auth.jwt()->>'role' = 'service_role');
 
 -- 5. RPC Functions
@@ -159,6 +169,21 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+-- Check if email exists before signup
+CREATE OR REPLACE FUNCTION public.check_email_exists(email_to_check text)
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1
+    FROM auth.users
+    WHERE email = email_to_check
+  );
+END;
+$$;
+
 -- Edge Function Trigger Handler
 CREATE OR REPLACE FUNCTION public.trigger_send_otp_final()
 RETURNS trigger AS $$
@@ -177,24 +202,26 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- 6. Triggers
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
 
+DROP TRIGGER IF EXISTS on_auth_otp_request ON public.email_otps;
 CREATE TRIGGER on_auth_otp_request
   AFTER INSERT ON public.email_otps
   FOR EACH ROW EXECUTE PROCEDURE public.trigger_send_otp_final();
 
 -- 7. Scheduled Jobs (Cron)
--- Note: Replace placeholders with real URL/Keys manually or during setup env
+-- Note: Replace YOUR_PRODUCTION_SERVICE_ROLE_KEY with your actual Production Service Role Key
 SELECT cron.schedule(
   'classify-folders-every-30-mins',
   '*/30 * * * *',
   $$
   SELECT
     net.http_post(
-      url := 'https://izlahmslmpmfeecpgkav.supabase.co/functions/v1/classify-folders',
-      headers := '{"Content-Type": "application/json", "Authorization": "Bearer SERVICE_ROLE_KEY"}'::jsonb,
+      url := 'https://baelekmfmvlyglowofab.supabase.co/functions/v1/classify-folders',
+      headers := '{"Content-Type": "application/json", "Authorization": "Bearer YOUR_PRODUCTION_SERVICE_ROLE_KEY"}'::jsonb,
       body := '{}'::jsonb
     );
   $$
