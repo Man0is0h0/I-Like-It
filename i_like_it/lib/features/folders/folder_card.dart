@@ -234,7 +234,7 @@ class FolderCard extends StatelessWidget {
                       builder: (ctx) => AlertDialog(
                         title: const Text('Delete Folder'),
                         content: Text(
-                          'Are you sure you want to delete "${folder.name}"? Links inside will not be deleted.',
+                          'Are you sure you want to delete "${folder.name}"?',
                         ),
                         actions: [
                           TextButton(

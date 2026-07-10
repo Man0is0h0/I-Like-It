@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../config/app_config.dart';
 import '../../core/auth/user_session_manager.dart';
 import '../../core/sync/sync_manager.dart';
+import '../../core/database/database_helper.dart';
 import '../folders/folder_screen.dart';
 import '../../core/widgets/gradient_scaffold.dart';
 import '../../core/widgets/glass_container.dart';
@@ -43,6 +44,7 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _usernameController = TextEditingController();
+  final _mobileController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
   // Password Visibility
@@ -54,6 +56,23 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
 
   void _showErrorSnackBar(String message) {
     if (!mounted) return;
+
+    // Sanitize backend/network errors from being visible on UI
+    String displayMessage = message;
+    final lowerMsg = message.toLowerCase();
+    if (lowerMsg.contains('exception') || 
+        lowerMsg.contains('api key') || 
+        lowerMsg.contains('socket') || 
+        lowerMsg.contains('supabase')) {
+      if (lowerMsg.contains('invalid login credentials')) {
+        displayMessage = 'Invalid email or password. Please try again.';
+      } else if (lowerMsg.contains('user already registered') || lowerMsg.contains('user_already_exists')) {
+        displayMessage = 'This email address is already registered. Please log in instead.';
+      } else {
+        displayMessage = 'An unexpected server error occurred. Please try again later.';
+      }
+    }
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
@@ -62,7 +81,7 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                message,
+                displayMessage,
                 style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w500,
@@ -375,6 +394,18 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
             labelStyle: TextStyle(color: colorScheme.onSurfaceVariant.withOpacity(0.5)),
             prefixIcon: const Icon(Icons.person_outline),
           ),
+        ),
+        const SizedBox(height: 16),
+        // Mobile Number field
+        TextField(
+          controller: _mobileController,
+          style: theme.textTheme.bodyMedium,
+          decoration: InputDecoration(
+            labelText: 'Mobile Number',
+            labelStyle: TextStyle(color: colorScheme.onSurfaceVariant.withOpacity(0.5)),
+            prefixIcon: const Icon(Icons.phone_outlined),
+          ),
+          keyboardType: TextInputType.phone,
         ),
         const SizedBox(height: 16),
         // Email field
@@ -707,9 +738,25 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
     }
   }
 
+  Future<void> _createPredefinedFolders() async {
+    final now = DateTime.now().toIso8601String();
+    final predefinedFolders = [
+      {'name': 'Food', 'icon': '0xe32e', 'created_at': now}, // restaurant
+      {'name': 'Travel', 'icon': '0xf195', 'created_at': now}, // travel_explore
+      {'name': 'Shopping', 'icon': '0xe5dd', 'created_at': now}, // shopping_bag
+      {'name': 'Sports', 'icon': '0xf04a', 'created_at': now}, // sports_basketball
+      {'name': 'Knowledge', 'icon': '0xf0e6', 'created_at': now}, // school
+      {'name': 'Movies/Music', 'icon': '0xe04b', 'created_at': now}, // video_library
+    ];
+    for (var folder in predefinedFolders) {
+      await DatabaseHelper.instance.insertFolder(folder);
+    }
+  }
+
   // SIGNUP LOGIC
   Future<void> _signup() async {
     final username = _usernameController.text.trim();
+    final mobile = _mobileController.text.trim();
     final email = _emailController.text.trim().toLowerCase();
     final password = _passwordController.text.trim();
     final confirmPassword = _confirmPasswordController.text.trim();
@@ -718,6 +765,13 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Please enter a username')));
+      return;
+    }
+
+    if (mobile.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please enter a mobile number')));
       return;
     }
 
@@ -780,7 +834,10 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
       final response = await Supabase.instance.client.auth.signUp(
         email: email,
         password: password,
-        data: {'username': username},
+        data: {
+          'username': username,
+          'mobile_number': mobile,
+        },
       );
 
       final user = response.user;
@@ -790,6 +847,8 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
         if (session != null) {
           // Instant login if confirmations are disabled in Supabase
           await UserSessionManager.loginWithEmail(user.id, user.email!);
+
+          await _createPredefinedFolders();
 
           SyncManager.instance.resetUserCreated();
           SyncManager.instance.sync();
@@ -955,6 +1014,8 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
                                 user.id,
                                 user.email!,
                               );
+
+                              await _createPredefinedFolders();
 
                               // Trigger sync since user is now logged in
                               SyncManager.instance.resetUserCreated();

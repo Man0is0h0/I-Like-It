@@ -14,6 +14,8 @@ CREATE EXTENSION IF NOT EXISTS "pg_cron";
 CREATE TABLE IF NOT EXISTS public.users (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
   email text,
+  username text,
+  mobile_number text,
   email_verified boolean DEFAULT false,
   role text NOT NULL DEFAULT 'user'::text,
   last_seen_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
@@ -115,8 +117,8 @@ CREATE POLICY "Service Role manages OTPs" ON public.email_otps FOR ALL USING (au
 CREATE OR REPLACE FUNCTION public.handle_new_user() 
 RETURNS trigger AS $$
 BEGIN
-  INSERT INTO public.users (id, email)
-  VALUES (new.id, new.email);
+  INSERT INTO public.users (id, email, username, mobile_number)
+  VALUES (new.id, new.email, new.raw_user_meta_data->>'username', new.raw_user_meta_data->>'mobile_number');
   RETURN new;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;

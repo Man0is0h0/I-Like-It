@@ -29,6 +29,18 @@ class LinkScreen extends StatefulWidget {
 class _LinkScreenState extends State<LinkScreen> {
   List<LinkItem> links = [];
   StreamSubscription? _syncSubscription;
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  List<LinkItem> get _filteredLinks {
+    if (_searchQuery.isEmpty) return links;
+    final lowerQuery = _searchQuery.toLowerCase();
+    return links.where((link) {
+      return link.title.toLowerCase().contains(lowerQuery) ||
+          link.url.toLowerCase().contains(lowerQuery) ||
+          (link.notes?.toLowerCase().contains(lowerQuery) ?? false);
+    }).toList();
+  }
 
   @override
   void initState() {
@@ -46,6 +58,7 @@ class _LinkScreenState extends State<LinkScreen> {
   @override
   void dispose() {
     _syncSubscription?.cancel();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -149,7 +162,7 @@ class _LinkScreenState extends State<LinkScreen> {
                         borderRadius: BorderRadius.circular(12),
                         child: Image.network(
                           link.imageUrl!,
-                          width: 72,
+                          width: 96,
                           height: 54,
                           fit: BoxFit.cover,
                           errorBuilder: (_, __, ___) => const SizedBox.shrink(),
@@ -426,15 +439,66 @@ class _LinkScreenState extends State<LinkScreen> {
                   ),
                 ),
               )
-            else
-              SliverPadding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
+            else ...[
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                  child: TextField(
+                    controller: _searchController,
+                    onChanged: (value) => setState(() => _searchQuery = value),
+                    decoration: InputDecoration(
+                      hintText: 'Search links...',
+                      prefixIcon: const Icon(Icons.search),
+                      suffixIcon: _searchQuery.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear),
+                              onPressed: () {
+                                _searchController.clear();
+                                setState(() => _searchQuery = '');
+                              },
+                            )
+                          : null,
+                      filled: true,
+                      fillColor: theme.colorScheme.surfaceVariant.withOpacity(0.3),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(30),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    ),
+                  ),
                 ),
-                sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate((context, index) {
-                    final link = links[index];
+              ),
+              if (_filteredLinks.isEmpty)
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.search_off_rounded,
+                          size: 64,
+                          color: colorScheme.onSurfaceVariant.withOpacity(0.5),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'No results found',
+                          style: theme.textTheme.titleLarge,
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              else
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  sliver: SliverList(
+                    delegate: SliverChildBuilderDelegate((context, index) {
+                      final link = _filteredLinks[index];
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 10),
                       child: LinkCard(
@@ -524,9 +588,10 @@ class _LinkScreenState extends State<LinkScreen> {
                         ),
                       ),
                     );
-                  }, childCount: links.length),
+                    }, childCount: _filteredLinks.length),
+                  ),
                 ),
-              ),
+              ],
 
             // Fab padding space
             const SliverToBoxAdapter(child: SizedBox(height: 80)),

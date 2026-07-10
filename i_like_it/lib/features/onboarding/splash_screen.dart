@@ -100,33 +100,14 @@ class _AnimatedLoadingTextState extends State<AnimatedLoadingText> {
     final dots = '.' * _dotCount;
     final paddingDots = ' ' * (3 - _dotCount);
 
-    return RichText(
-      text: TextSpan(
-        style: const TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.w400,
-          fontFamily: 'Inter',
-          color: Colors.white,
-        ),
-        children: [
-          const TextSpan(text: 'Loading '),
-          const TextSpan(
-            text: 'your',
-            style: TextStyle(
-              color: Color(0xFF4CAF50), // Branding Green
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const TextSpan(text: ' favorites'),
-          // Use a TextSpan with constant character width (dots + padding spaces)
-          // to prevent text shift/jumping during dot count updates
-          TextSpan(
-            text: '$dots$paddingDots',
-            style: const TextStyle(
-              fontFamily: 'Courier',
-            ), // Monospace font for exact padding alignment
-          ),
-        ],
+    return Text(
+      'Your one-stop solution to Save, Organize & Share what you like.',
+      textAlign: TextAlign.center,
+      style: const TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.w400,
+        fontFamily: 'Inter',
+        color: Colors.white,
       ),
     );
   }

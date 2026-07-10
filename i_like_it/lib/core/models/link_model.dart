@@ -6,6 +6,7 @@ class LinkItem {
   final String? domain;
   final String? imageUrl;
   final String? notes;
+  final String? folderName;
   final DateTime createdAt;
 
   LinkItem({
@@ -16,6 +17,7 @@ class LinkItem {
     this.domain,
     this.imageUrl,
     this.notes,
+    this.folderName,
     required this.createdAt,
   });
 
@@ -29,6 +31,7 @@ class LinkItem {
       'image_url': imageUrl,
       'notes': notes,
       'created_at': createdAt.toIso8601String(),
+      // We typically do not save folderName back to DB, it's just for UI
     };
   }
 
@@ -41,6 +44,7 @@ class LinkItem {
       domain: map['domain'],
       imageUrl: map['image_url'],
       notes: map['notes'],
+      folderName: map['folder_name'],
       createdAt: DateTime.parse(map['created_at']),
     );
   }

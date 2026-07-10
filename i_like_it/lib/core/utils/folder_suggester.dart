@@ -10,6 +10,24 @@ class FolderSuggester {
     required String linkContent,
     required List<Folder> existingFolders,
   }) async {
+    // --- AI DISABLED PER REQUEST ---
+    // To re-enable AI, simply comment out or delete the following block:
+    final result = suggestFolders(
+      linkUrl: linkUrl,
+      linkTitle: linkTitle,
+      linkDescription: linkDescription,
+      linkContent: linkContent,
+      existingFolders: existingFolders,
+    );
+    return SuggestionResult(
+      suggestedFolders: result.suggestedFolders,
+      suggestedNewFolderName: result.suggestedNewFolderName,
+      keywords: result.keywords,
+      domain: result.domain,
+      aiSuggestions: [],
+    );
+    // --------------------------------
+
     try {
       // Try to get AI suggestions for videos and links
       final aiSuggestions = await AIVideoAnalyzer.analyzeVideoAndSuggestFolders(

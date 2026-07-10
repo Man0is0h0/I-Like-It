@@ -242,12 +242,13 @@ class DatabaseHelper {
       orderBy: 'created_at DESC',
     );
 
-    final links = await db.query(
-      'links',
-      where: '(title LIKE ? OR url LIKE ? OR notes LIKE ?) AND is_deleted = 0',
-      whereArgs: [searchTerm, searchTerm, searchTerm],
-      orderBy: 'created_at DESC',
-    );
+    final links = await db.rawQuery('''
+      SELECT l.*, f.name as folder_name
+      FROM links l
+      LEFT JOIN folders f ON l.folder_id = f.id
+      WHERE (l.title LIKE ? OR l.url LIKE ? OR l.notes LIKE ?) AND l.is_deleted = 0
+      ORDER BY l.created_at DESC
+    ''', [searchTerm, searchTerm, searchTerm]);
 
     return {'folders': folders, 'links': links};
   }

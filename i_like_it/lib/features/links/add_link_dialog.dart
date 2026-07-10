@@ -181,9 +181,18 @@ class _AddLinkDialogState extends State<AddLinkDialog> {
           ),
         );
       } else {
+        String displayError = 'Failed to save link. Please try again.';
+        final lowerMsg = e.toString().toLowerCase();
+        if (!lowerMsg.contains('exception') && 
+            !lowerMsg.contains('api key') && 
+            !lowerMsg.contains('socket') && 
+            !lowerMsg.contains('supabase')) {
+          displayError = 'Failed to save link: $e';
+        }
+        
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Failed to save link: $e')));
+        ).showSnackBar(SnackBar(content: Text(displayError)));
       }
     }
   }

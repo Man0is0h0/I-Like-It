@@ -21,6 +21,17 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
   void _showErrorSnackBar(String message) {
     if (!mounted) return;
+
+    // Sanitize backend/network errors from being visible on UI
+    String displayMessage = message;
+    final lowerMsg = message.toLowerCase();
+    if (lowerMsg.contains('exception') || 
+        lowerMsg.contains('api key') || 
+        lowerMsg.contains('socket') || 
+        lowerMsg.contains('supabase')) {
+      displayMessage = 'An unexpected server error occurred. Please try again later.';
+    }
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
@@ -29,7 +40,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                message,
+                displayMessage,
                 style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w500,

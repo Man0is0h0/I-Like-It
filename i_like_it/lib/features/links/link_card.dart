@@ -51,7 +51,7 @@ class LinkCard extends StatelessWidget {
               children: [
                 // Larger Thumbnail (Mockup style)
                 Container(
-                  width: 100,
+                  width: 128,
                   height: 72,
                   decoration: BoxDecoration(
                     color: _getDomainColor(domain).withOpacity(0.15),
@@ -64,6 +64,8 @@ class LinkCard extends StatelessWidget {
                   child: link.imageUrl != null && link.imageUrl!.isNotEmpty
                       ? Image.network(
                           link.imageUrl!,
+                          width: 128,
+                          height: 72,
                           fit: BoxFit.cover,
                           errorBuilder: (context, error, stackTrace) =>
                               _buildFallbackInitial(domain),
