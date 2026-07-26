@@ -29,6 +29,25 @@ class RemoteDataSource {
     await _client.from('users').update({'email': email}).eq('id', userId);
   }
 
+  Future<void> updateUserProfile(String username, String mobileNumber) async {
+    final userId = UserSessionManager.userId;
+    // Update public.users table
+    await _client.from('users').update({
+      'username': username,
+      'mobile_number': mobileNumber,
+    }).eq('id', userId);
+
+    // Update auth metadata
+    await _client.auth.updateUser(
+      UserAttributes(
+        data: {
+          'username': username,
+          'mobile_number': mobileNumber,
+        },
+      ),
+    );
+  }
+
   Future<void> updateLastSeen() async {
     print('[RemoteDataSource] Entering updateLastSeen...');
     try {

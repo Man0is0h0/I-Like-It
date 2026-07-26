@@ -22,6 +22,7 @@ import '../../core/auth/user_session_manager.dart';
 import '../../core/theme/theme_manager.dart';
 import '../admin/admin_screen.dart';
 import '../onboarding/initial_setup_screen.dart';
+import '../profile/profile_screen.dart';
 import '../../core/models/link_model.dart';
 import '../links/link_card.dart';
 import 'all_saves_screen.dart';
@@ -29,6 +30,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../core/utils/url_utils.dart';
 import '../links/edit_link_dialog.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class FolderScreen extends StatefulWidget {
   final String? sharedLink;
@@ -40,16 +42,36 @@ class FolderScreen extends StatefulWidget {
 }
 
 class _FolderScreenState extends State<FolderScreen>
-    with WidgetsBindingObserver {
+    with WidgetsBindingObserver, SingleTickerProviderStateMixin {
   List<Folder> folders = [];
   List<LinkItem> recentLinks = [];
+  int _totalLinksCount = 0;
   bool _isAdmin = false;
   bool _isLoading = false; // Added loading state
+  bool _showCreateFolderHint = false;
   StreamSubscription? _syncSubscription;
+  late AnimationController _hintBounceController;
+  late Animation<double> _hintBounceAnimation;
+
+  Future<void> _checkFirstFolderHint() async {
+    // Deprecated in favor of dynamic check in _loadFolders
+  }
 
   @override
   void initState() {
     super.initState();
+    _hintBounceController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat(reverse: true);
+
+    _hintBounceAnimation = Tween<double>(begin: 0.0, end: 6.0).animate(
+      CurvedAnimation(
+        parent: _hintBounceController,
+        curve: Curves.easeInOut,
+      ),
+    );
+
     WidgetsBinding.instance.addObserver(this); // Register observer
     _checkAdmin();
     _init(); // This now handles loading logic
@@ -77,6 +99,7 @@ class _FolderScreenState extends State<FolderScreen>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _syncSubscription?.cancel();
+    _hintBounceController.dispose();
     super.dispose();
   }
 
@@ -250,17 +273,26 @@ class _FolderScreenState extends State<FolderScreen>
     // Query folders after the delay to ensure we fetch the most recent sync results
     final result = await DatabaseHelper.instance.getFolders();
     final linkResult = await DatabaseHelper.instance.getRecentLinks(limit: 3);
+    final totalLinks = await DatabaseHelper.instance.getLinksCount();
 
     if (!mounted) return;
 
+    const predefinedNames = {'Food', 'Travel', 'Shopping', 'Sports', 'Knowledge', 'Movies'};
+    final loadedFolders = result.map((e) => Folder.fromMap(e)).toList();
+    final hasCustomFolder = loadedFolders.any((f) => !predefinedNames.contains(f.name));
+
+    final shouldShowHint = !hasCustomFolder;
+
     setState(() {
-      folders = result.map((e) => Folder.fromMap(e)).toList();
+      folders = loadedFolders;
       folders.sort((a, b) {
         int cmp = b.itemCount.compareTo(a.itemCount);
         if (cmp == 0) return b.createdAt.compareTo(a.createdAt);
         return cmp;
       });
       recentLinks = linkResult.map((e) => LinkItem.fromMap(e)).toList();
+      _totalLinksCount = totalLinks;
+      _showCreateFolderHint = shouldShowHint;
       // Only clear loading state if this was a blocking load
       // This prevents background silent refreshes (e.g. sync) from interrupting the welcome animation
       if (!silent) {
@@ -776,7 +808,7 @@ class _FolderScreenState extends State<FolderScreen>
                           );
                         },
                         child: Text(
-                          'View all',
+                          'View all ($_totalLinksCount)',
                           style: TextStyle(color: colorScheme.primary),
                         ),
                         style: TextButton.styleFrom(
@@ -902,37 +934,44 @@ class _FolderScreenState extends State<FolderScreen>
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Folders',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const AllFoldersScreen(),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Folders',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
                           ),
-                        ).then((_) => _loadFolders(silent: true));
-                      },
-                      child: Text(
-                        'View all',
-                        style: TextStyle(color: colorScheme.primary),
-                      ),
-                      style: TextButton.styleFrom(
-                        minimumSize: Size.zero,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
                         ),
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
+                        if (folders.length > 6)
+                          TextButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const AllFoldersScreen(),
+                                ),
+                              ).then((_) => _loadFolders(silent: true));
+                            },
+                            child: Text(
+                              'View all (${folders.length})',
+                              style: TextStyle(color: colorScheme.primary),
+                            ),
+                            style: TextButton.styleFrom(
+                              minimumSize: Size.zero,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
+                          ),
+                      ],
                     ),
+
                   ],
                 ),
               ),
@@ -1000,7 +1039,7 @@ class _FolderScreenState extends State<FolderScreen>
                       folder: folder,
                       onRefresh: () => _loadFolders(silent: true),
                     );
-                  }, childCount: math.min(4, folders.length)),
+                  }, childCount: folders.length <= 6 ? folders.length : 4),
                 ),
               ),
 
@@ -1010,14 +1049,62 @@ class _FolderScreenState extends State<FolderScreen>
         ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          await _showAddFolderDialog();
-        },
-        backgroundColor: colorScheme.primary,
-        elevation: 6,
-        shape: const CircleBorder(),
-        child: const Icon(Icons.add_rounded, size: 32, color: Colors.white),
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (_showCreateFolderHint) ...[
+            TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0.0, end: 1.0),
+              duration: const Duration(milliseconds: 600),
+              curve: Curves.easeOutBack,
+              builder: (context, scaleValue, child) {
+                return Transform.scale(
+                  scale: scaleValue,
+                  child: AnimatedBuilder(
+                    animation: _hintBounceAnimation,
+                    builder: (context, child) {
+                      return Transform.translate(
+                        offset: Offset(0, -_hintBounceAnimation.value),
+                        child: Container(
+                          margin: const EdgeInsets.only(bottom: 6),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'Create your own folders',
+                                style: TextStyle(
+                                  color: colorScheme.primary,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Icon(
+                                Icons.keyboard_arrow_down_rounded,
+                                color: colorScheme.primary.withOpacity(0.8),
+                                size: 18,
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                );
+              },
+            ),
+          ],
+          FloatingActionButton(
+            onPressed: () async {
+              await _showAddFolderDialog();
+            },
+            backgroundColor: colorScheme.primary,
+            elevation: 6,
+            shape: const CircleBorder(),
+            child: const Icon(Icons.add_rounded, size: 32, color: Colors.white),
+          ),
+        ],
       ),
     );
   }
@@ -1029,6 +1116,16 @@ class _FolderScreenState extends State<FolderScreen>
     );
 
     if (result != null) {
+      // Dismiss onboarding hint permanently once user creates their first folder
+      try {
+        await UserSessionManager.setHasCreatedFolder(true);
+      } catch (_) {}
+      if (mounted) {
+        setState(() {
+          _showCreateFolderHint = false;
+        });
+      }
+
       _loadFolders(silent: true);
       SyncManager.instance.sync();
 
@@ -1120,6 +1217,27 @@ class _FolderMenuOverlayState extends State<_FolderMenuOverlay> {
       key: const ValueKey('main'),
       mainAxisSize: MainAxisSize.min,
       children: [
+        ListTile(
+          leading: Icon(
+            Icons.person_outline,
+            color: colorScheme.onSurface,
+            size: 20,
+          ),
+          title: Text('My Profile', style: theme.textTheme.bodyMedium),
+          trailing: Icon(
+            Icons.chevron_right,
+            color: colorScheme.onSurfaceVariant,
+            size: 18,
+          ),
+          onTap: () {
+            Navigator.pop(context);
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ProfileScreen()),
+            );
+          },
+          dense: true,
+        ),
         ListTile(
           leading: Icon(
             Icons.palette_outlined,

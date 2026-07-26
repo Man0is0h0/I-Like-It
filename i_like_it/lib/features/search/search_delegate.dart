@@ -277,14 +277,16 @@ class GlobalSearchDelegate extends SearchDelegate {
                         ],
                       ),
                       onTap: () {
-                        String url = MetadataExtractor.extractCleanUrl(
-                          link.url,
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => LinkScreen(
+                              folderId: link.folderId,
+                              folderName: link.folderName ?? 'Folder',
+                              highlightLinkId: link.id,
+                            ),
+                          ),
                         );
-                        if (!url.startsWith('http://') &&
-                            !url.startsWith('https://')) {
-                          url = 'https://$url';
-                        }
-                        UrlUtils.launchBrowserOrApp(context, url);
                       },
                     ),
                   ),

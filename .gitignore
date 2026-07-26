@@ -46,3 +46,4 @@ android/app/build
 # Supabase
 supabase/.temp/
 project-backend/supabase/.temp/
+.agents

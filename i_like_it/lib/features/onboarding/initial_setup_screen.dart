@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../config/app_config.dart';
@@ -11,6 +12,7 @@ import '../../core/database/database_helper.dart';
 import '../folders/folder_screen.dart';
 import '../../core/widgets/gradient_scaffold.dart';
 import '../../core/widgets/glass_container.dart';
+import '../../core/utils/countries.dart';
 
 class InitialSetupScreen extends StatefulWidget {
   const InitialSetupScreen({super.key});
@@ -26,6 +28,7 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
 
   // Validation state
   String? _emailErrorText;
+  String? _mobileErrorText;
 
   void _validateEmail(String value) {
     if (value.isEmpty) {
@@ -38,6 +41,30 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
     setState(() {
       _emailErrorText = emailValid ? null : 'Invalid email address';
     });
+  }
+
+  void _validateMobile(String value) {
+    if (value.isEmpty) {
+      setState(() => _mobileErrorText = null);
+      return;
+    }
+    final digitsOnly = RegExp(r'^\d+$');
+    if (!digitsOnly.hasMatch(value)) {
+      setState(() => _mobileErrorText = 'Only digits are allowed');
+      return;
+    }
+    if (value.length < _selectedCountry.minLength ||
+        value.length > _selectedCountry.maxLength) {
+      final lengthMsg = _selectedCountry.minLength == _selectedCountry.maxLength
+          ? '${_selectedCountry.minLength}'
+          : '${_selectedCountry.minLength}-${_selectedCountry.maxLength}';
+      setState(() {
+        _mobileErrorText =
+            'Please enter a valid $lengthMsg-digit mobile number';
+      });
+      return;
+    }
+    setState(() => _mobileErrorText = null);
   }
 
   // Controllers
@@ -53,6 +80,100 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
 
   // Checkbox state (Signup only)
   bool _termsAccepted = false;
+
+  CountryCode _selectedCountry = const CountryCode(name: 'India', code: '+91', flag: '🇮🇳', minLength: 10, maxLength: 10);
+
+  void _selectCountry() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        String filter = '';
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final theme = Theme.of(context);
+            final colorScheme = theme.colorScheme;
+            final filteredCountries = countries.where((c) {
+              return c.name.toLowerCase().contains(filter.toLowerCase()) ||
+                  c.code.contains(filter);
+            }).toList();
+
+            return Container(
+              height: MediaQuery.of(context).size.height * 0.6,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.background,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: Column(
+                children: [
+                  const SizedBox(height: 12),
+                  Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: colorScheme.onSurfaceVariant.withOpacity(0.4),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: TextField(
+                      autofocus: true,
+                      style: theme.textTheme.bodyMedium,
+                      decoration: InputDecoration(
+                        hintText: 'Search country or code...',
+                        prefixIcon: const Icon(Icons.search),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onChanged: (val) {
+                        setModalState(() {
+                          filter = val;
+                        });
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: filteredCountries.length,
+                      itemBuilder: (context, index) {
+                        final country = filteredCountries[index];
+                        return ListTile(
+                          leading: Text(country.flag, style: const TextStyle(fontSize: 24)),
+                          title: Text(country.name),
+                          trailing: Text(
+                            country.code,
+                            style: TextStyle(
+                              color: colorScheme.primary,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          onTap: () {
+                            setState(() {
+                              _selectedCountry = country;
+                              if (_mobileController.text.length > country.maxLength) {
+                                _mobileController.text = _mobileController.text.substring(0, country.maxLength);
+                              }
+                              _validateMobile(_mobileController.text);
+                            });
+                            Navigator.pop(context);
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
 
   void _showErrorSnackBar(String message) {
     if (!mounted) return;
@@ -176,8 +297,8 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
                 // App Logo
                 GlassContainer(
                   borderRadius: BorderRadius.circular(100),
-                  height: 100,
-                  width: 100,
+                  height: 120,
+                  width: 120,
                   padding: const EdgeInsets.all(12),
                   child: Image.asset(
                     theme.brightness == Brightness.light
@@ -188,9 +309,10 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'Keep track of links and folders you like, synced securely.',
+                  'Your one-stop solution to Save, Organize\n& Share what you like.',
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: colorScheme.onSurfaceVariant,
+                    fontSize: 14.0,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -396,17 +518,84 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
           ),
         ),
         const SizedBox(height: 16),
-        // Mobile Number field
-        TextField(
-          controller: _mobileController,
-          style: theme.textTheme.bodyMedium,
-          decoration: InputDecoration(
-            labelText: 'Mobile Number',
-            labelStyle: TextStyle(color: colorScheme.onSurfaceVariant.withOpacity(0.5)),
-            prefixIcon: const Icon(Icons.phone_outlined),
+        // Mobile Number field with country code picker
+        IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              InkWell(
+                onTap: _selectCountry,
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  alignment: Alignment.center,
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: colorScheme.onSurfaceVariant.withOpacity(0.3),
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        _selectedCountry.flag,
+                        style: const TextStyle(fontSize: 20),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        _selectedCountry.code,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(width: 2),
+                      Icon(
+                        Icons.arrow_drop_down,
+                        color: colorScheme.onSurfaceVariant.withOpacity(0.7),
+                        size: 20,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: TextField(
+                  controller: _mobileController,
+                  onChanged: _validateMobile,
+                  style: theme.textTheme.bodyMedium,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(_selectedCountry.maxLength),
+                  ],
+                  decoration: InputDecoration(
+                    labelText: 'Mobile Number',
+                    labelStyle: TextStyle(
+                      color: colorScheme.onSurfaceVariant.withOpacity(0.5),
+                    ),
+                    errorText: _mobileErrorText != null ? '' : null,
+                    errorStyle: const TextStyle(height: 0.01, fontSize: 0),
+                    prefixIcon: const Icon(Icons.phone_outlined),
+                  ),
+                  keyboardType: TextInputType.phone,
+                ),
+              ),
+            ],
           ),
-          keyboardType: TextInputType.phone,
         ),
+        if (_mobileErrorText != null) ...[
+          const SizedBox(height: 6),
+          Padding(
+            padding: const EdgeInsets.only(left: 4.0),
+            child: Text(
+              _mobileErrorText!,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: colorScheme.error,
+              ),
+            ),
+          ),
+        ],
         const SizedBox(height: 16),
         // Email field
         TextField(
@@ -676,7 +865,31 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
       final session = response.session;
 
       if (user != null && session != null) {
+        String username = '';
+        String mobile = '';
+        try {
+          final userData = await Supabase.instance.client
+              .from('users')
+              .select('username, mobile_number')
+              .eq('id', user.id)
+              .maybeSingle();
+          if (userData != null) {
+            username = userData['username'] ?? '';
+            mobile = userData['mobile_number'] ?? '';
+          }
+        } catch (e) {
+          print('Error fetching user profile from database: $e');
+        }
+
+        if (username.isEmpty) {
+          username = user.userMetadata?['username'] ?? '';
+        }
+        if (mobile.isEmpty) {
+          mobile = user.userMetadata?['mobile_number'] ?? '';
+        }
+
         await UserSessionManager.loginWithEmail(user.id, user.email!);
+        await UserSessionManager.saveUserProfile(username, mobile);
 
         // Trigger sync since user is now logged in
         SyncManager.instance.resetUserCreated();
@@ -693,46 +906,12 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
     } on AuthException catch (e) {
       if (e.message.toLowerCase().contains('email not confirmed') ||
           e.code == 'email_not_confirmed') {
-        // Automatically resend OTP and show the verification dialog
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Email not verified. Resending verification code...',
-              ),
-              backgroundColor: Colors.orange,
-            ),
-          );
-        }
-        try {
-          await Supabase.instance.client.auth.resend(
-            type: OtpType.signup,
-            email: email,
-          );
-          if (mounted) {
-            _showOtpVerificationDialog(email);
-          }
-        } catch (resendError) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text(
-                  'Failed to resend verification code. Please try signing up again.',
-                ),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
-        }
+        _showErrorSnackBar('Account email is not verified. Please complete Sign Up first.');
       } else {
-        String errorMessage = e.message;
-        if (e.message.toLowerCase().contains('invalid login credentials')) {
-          errorMessage = 'Invalid email or password. Please try again.';
-        }
-        _showErrorSnackBar(errorMessage);
+        _showErrorSnackBar(_sanitizeAuthError(e.message));
       }
     } catch (e) {
-      _showErrorSnackBar('Login failed: $e');
+      _showErrorSnackBar('Login failed. Please check your connection and try again.');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -746,17 +925,40 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
       {'name': 'Shopping', 'icon': '0xe5dd', 'created_at': now}, // shopping_bag
       {'name': 'Sports', 'icon': '0xf04a', 'created_at': now}, // sports_basketball
       {'name': 'Knowledge', 'icon': '0xf0e6', 'created_at': now}, // school
-      {'name': 'Movies/Music', 'icon': '0xe04b', 'created_at': now}, // video_library
+      {'name': 'Movies', 'icon': '0xe04b', 'created_at': now}, // video_library
     ];
     for (var folder in predefinedFolders) {
       await DatabaseHelper.instance.insertFolder(folder);
     }
   }
 
+  String _sanitizeAuthError(String message) {
+    final lower = message.toLowerCase();
+    if (lower.contains('invalid login credentials')) {
+      return 'Invalid email or password. Please try again.';
+    }
+    if (lower.contains('user already registered') || lower.contains('user_already_exists')) {
+      return 'This email address is already registered. Please log in instead.';
+    }
+    if (lower.contains('unexpected_failure') ||
+        lower.contains('database error') ||
+        lower.contains('saving new user') ||
+        lower.contains('failed to save')) {
+      return 'An unexpected server error occurred. Please try again in a few moments.';
+    }
+    if (lower.contains('network') || lower.contains('connection') || lower.contains('host')) {
+      return 'Network connection issue. Please check your internet connection.';
+    }
+    if (lower.contains('invalid email')) {
+      return 'The email address is invalid. Please enter a valid email.';
+    }
+    return message;
+  }
+
   // SIGNUP LOGIC
   Future<void> _signup() async {
     final username = _usernameController.text.trim();
-    final mobile = _mobileController.text.trim();
+    final mobileNumber = _mobileController.text.trim();
     final email = _emailController.text.trim().toLowerCase();
     final password = _passwordController.text.trim();
     final confirmPassword = _confirmPasswordController.text.trim();
@@ -768,12 +970,22 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
       return;
     }
 
-    if (mobile.isEmpty) {
+    if (mobileNumber.isEmpty) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Please enter a mobile number')));
       return;
     }
+
+    _validateMobile(mobileNumber);
+    if (_mobileErrorText != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_mobileErrorText!)),
+      );
+      return;
+    }
+
+    final mobile = '${_selectedCountry.code}$mobileNumber';
 
     final bool emailValid = RegExp(
       r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9-]+\.[a-zA-Z]+",
@@ -847,6 +1059,7 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
         if (session != null) {
           // Instant login if confirmations are disabled in Supabase
           await UserSessionManager.loginWithEmail(user.id, user.email!);
+          await UserSessionManager.saveUserProfile(username, mobile);
 
           await _createPredefinedFolders();
 
@@ -866,15 +1079,9 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
         }
       }
     } on AuthException catch (e) {
-      String errorMessage = e.message;
-      if (e.message.toLowerCase().contains('user already registered') ||
-          e.code == 'user_already_exists') {
-        errorMessage =
-            'This email address is already registered. Please log in instead.';
-      }
-      _showErrorSnackBar(errorMessage);
+      _showErrorSnackBar(_sanitizeAuthError(e.message));
     } catch (e) {
-      _showErrorSnackBar('Sign up failed: $e');
+      _showErrorSnackBar('Sign up failed. Please check your connection and try again.');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -891,6 +1098,8 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
       barrierDismissible: false,
       builder: (context) {
         bool isVerifying = false;
+        String? dialogErrorText;
+        String? dialogSuccessText;
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return BackdropFilter(
@@ -906,66 +1115,158 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    'We sent a verification code to $email. Please enter it below to confirm your account.',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  TextField(
-                    controller: otpController,
-                    keyboardType: TextInputType.number,
-                    style: theme.textTheme.bodyMedium,
-                    maxLength: 8,
-                    decoration: InputDecoration(
-                      labelText: 'Verification Code',
-                      hintText: 'Enter code',
-                      counterText: '',
-                      prefixIcon: const Icon(Icons.pin_outlined),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton(
-                      onPressed: isVerifying
-                          ? null
-                          : () async {
-                              try {
-                                await Supabase.instance.client.auth.resend(
-                                  type: OtpType.signup,
-                                  email: email,
-                                );
-                                if (mounted) {
-                                  _showSuccessSnackBar(
-                                    'A new verification code has been sent!',
-                                  );
-                                }
-                              } catch (e) {
-                                if (mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                        'Failed to resend code. Please try again.',
-                                      ),
-                                      backgroundColor: Colors.red,
-                                    ),
-                                  );
-                                }
-                              }
-                            },
-                      child: Text(
-                        'Resend Code',
-                        style: TextStyle(color: colorScheme.primary),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      'We sent a verification code to $email. Please enter it below to confirm your account.',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
                       ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 20),
+                    TextField(
+                      controller: otpController,
+                      keyboardType: TextInputType.number,
+                      style: theme.textTheme.bodyMedium,
+                      maxLength: 8,
+                      onChanged: (_) {
+                        setDialogState(() {
+                          if (dialogErrorText != null) dialogErrorText = null;
+                          if (dialogSuccessText != null) dialogSuccessText = null;
+                        });
+                      },
+                      decoration: InputDecoration(
+                        labelText: 'Verification Code',
+                        hintText: 'Enter code',
+                        counterText: '',
+                        prefixIcon: const Icon(Icons.pin_outlined),
+                      ),
+                    ),
+                    if (dialogErrorText != null) ...[
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.red.withOpacity(0.12),
+                          border: Border.all(
+                            color: Colors.red.withOpacity(0.4),
+                          ),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.error_outline_rounded,
+                              color: Colors.red,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                dialogErrorText!,
+                                style: const TextStyle(
+                                  color: Colors.red,
+                                  fontSize: 13,
+                                  height: 1.3,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                    if (dialogSuccessText != null) ...[
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withOpacity(0.12),
+                          border: Border.all(
+                            color: Colors.green.withOpacity(0.4),
+                          ),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.check_circle_outline_rounded,
+                              color: Colors.green,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                dialogSuccessText!,
+                                style: const TextStyle(
+                                  color: Colors.green,
+                                  fontSize: 13,
+                                  height: 1.3,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: isVerifying
+                            ? null
+                            : () async {
+                                setDialogState(() {
+                                  dialogErrorText = null;
+                                  dialogSuccessText = null;
+                                });
+                                try {
+                                  await Supabase.instance.client.auth.resend(
+                                    type: OtpType.signup,
+                                    email: email,
+                                  );
+                                  setDialogState(() {
+                                    dialogSuccessText = 'A new verification code has been sent!';
+                                  });
+                                } on AuthException catch (e) {
+                                  final message = e.message.toLowerCase();
+                                  if (message.contains('security purposes') || message.contains('request this after')) {
+                                    final match = RegExp(r'\d+').firstMatch(e.message);
+                                    if (match != null) {
+                                      final seconds = match.group(0);
+                                      setDialogState(
+                                        () => dialogErrorText =
+                                            'Please wait $seconds seconds before requesting a new verification code.',
+                                      );
+                                      return;
+                                    }
+                                  }
+                                  setDialogState(
+                                    () => dialogErrorText = e.message,
+                                  );
+                                } catch (e) {
+                                  setDialogState(
+                                    () => dialogErrorText =
+                                        'Failed to resend code. Please try again.',
+                                  );
+                                }
+                              },
+                        child: Text(
+                          'Resend Code',
+                          style: TextStyle(color: colorScheme.primary),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
               actions: [
                 TextButton(
@@ -987,17 +1288,17 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
                       : () async {
                           final otp = otpController.text.trim();
                           if (otp.isEmpty) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
+                            setDialogState(
+                              () => dialogErrorText =
                                   'Please enter the verification code',
-                                ),
-                              ),
                             );
                             return;
                           }
 
-                          setDialogState(() => isVerifying = true);
+                          setDialogState(() {
+                            isVerifying = true;
+                            dialogErrorText = null;
+                          });
                           try {
                             final response = await Supabase.instance.client.auth
                                 .verifyOTP(
@@ -1010,10 +1311,13 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
                             final session = response.session;
 
                             if (user != null && session != null) {
+                              final username = user.userMetadata?['username'] ?? '';
+                              final mobile = user.userMetadata?['mobile_number'] ?? '';
                               await UserSessionManager.loginWithEmail(
                                 user.id,
                                 user.email!,
                               );
+                              await UserSessionManager.saveUserProfile(username, mobile);
 
                               await _createPredefinedFolders();
 
@@ -1033,23 +1337,24 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
                               throw 'Verification failed. Please try again.';
                             }
                           } on AuthException catch (e) {
-                            if (mounted) {
-                              String errorMessage = e.message;
-                              if (errorMessage.toLowerCase().contains(
-                                    'expired',
-                                  ) ||
-                                  errorMessage.toLowerCase().contains(
-                                    'invalid',
-                                  )) {
-                                errorMessage =
-                                    'The verification code has expired or is invalid. Please request a new one.';
-                              }
-                              _showErrorSnackBar(errorMessage);
+                            String errorMessage = e.message;
+                            if (errorMessage.toLowerCase().contains(
+                                  'expired',
+                                ) ||
+                                errorMessage.toLowerCase().contains(
+                                  'invalid',
+                                )) {
+                              errorMessage =
+                                  'The verification code has expired or is invalid. Please request a new one.';
                             }
+                            setDialogState(
+                              () => dialogErrorText = errorMessage,
+                            );
                           } catch (e) {
-                            if (mounted) {
-                              _showErrorSnackBar('An unexpected error occurred. Please try again.');
-                            }
+                            setDialogState(
+                              () => dialogErrorText =
+                                  'An unexpected error occurred. Please try again.',
+                            );
                           } finally {
                             setDialogState(() => isVerifying = false);
                           }

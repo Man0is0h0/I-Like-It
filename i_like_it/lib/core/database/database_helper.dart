@@ -233,22 +233,46 @@ class DatabaseHelper {
     String query,
   ) async {
     final db = await database;
-    final searchTerm = '%$query%';
+    final cleanQuery = query.trim();
+    if (cleanQuery.isEmpty) {
+      return {'folders': [], 'links': []};
+    }
+
+    final terms = cleanQuery.split(' ').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+    if (terms.isEmpty) {
+      return {'folders': [], 'links': []};
+    }
+
+    // Build folders search clause
+    final foldersWhere = terms.map((_) => 'name LIKE ?').join(' AND ');
+    final foldersArgs = terms.map((t) => '%$t%').toList();
 
     final folders = await db.query(
       'folders',
-      where: 'name LIKE ? AND is_deleted = 0',
-      whereArgs: [searchTerm],
+      where: '($foldersWhere) AND is_deleted = 0',
+      whereArgs: foldersArgs,
       orderBy: 'created_at DESC',
     );
+
+    // Build links search clause
+    final linksWhere = terms
+        .map((_) => '(l.title LIKE ? OR l.url LIKE ? OR l.notes LIKE ?)')
+        .join(' AND ');
+    final linksArgs = <String>[];
+    for (final term in terms) {
+      final termWithWildcard = '%$term%';
+      linksArgs.add(termWithWildcard);
+      linksArgs.add(termWithWildcard);
+      linksArgs.add(termWithWildcard);
+    }
 
     final links = await db.rawQuery('''
       SELECT l.*, f.name as folder_name
       FROM links l
       LEFT JOIN folders f ON l.folder_id = f.id
-      WHERE (l.title LIKE ? OR l.url LIKE ? OR l.notes LIKE ?) AND l.is_deleted = 0
+      WHERE ($linksWhere) AND l.is_deleted = 0
       ORDER BY l.created_at DESC
-    ''', [searchTerm, searchTerm, searchTerm]);
+    ''', linksArgs);
 
     return {'folders': folders, 'links': links};
   }
@@ -401,6 +425,14 @@ class DatabaseHelper {
       where: 'is_deleted = 0',
       orderBy: 'created_at DESC',
     );
+  }
+
+  Future<int> getLinksCount() async {
+    final db = await database;
+    final count = Sqflite.firstIntValue(
+      await db.rawQuery('SELECT COUNT(*) FROM links WHERE is_deleted = 0'),
+    );
+    return count ?? 0;
   }
 
   // --- Sync Helpers ---

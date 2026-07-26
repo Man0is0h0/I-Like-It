@@ -560,11 +560,29 @@ class _EditLinkDialog extends StatefulWidget {
 class _EditLinkDialogState extends State<_EditLinkDialog> {
   late TextEditingController _titleController;
   late TextEditingController _noteController;
+  late final bool _isGeneric;
+
+  bool _isGenericTitle(String title) {
+    final t = title.toLowerCase().trim();
+    return t == 'instagram - reel' || 
+           t == 'instagram link' || 
+           t == 'instagram' ||
+           t == 'instagram- reel' ||
+           t == 'shared link' ||
+           t == 'facebook' ||
+           t == 'facebook link' ||
+           t == 'facebook post' ||
+           t == 'facebook watch' ||
+           t == 'facebook video' ||
+           t.startsWith('facebook -') ||
+           t.startsWith('facebook-');
+  }
 
   @override
   void initState() {
     super.initState();
-    _titleController = TextEditingController(text: widget.title);
+    _isGeneric = _isGenericTitle(widget.title);
+    _titleController = TextEditingController(text: _isGeneric ? '' : widget.title);
     _noteController = TextEditingController();
   }
 
@@ -576,8 +594,18 @@ class _EditLinkDialogState extends State<_EditLinkDialog> {
   }
 
   void _save() {
+    final title = _titleController.text.trim();
+    if (title.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter a title to save this link'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
     Navigator.pop(context, {
-      'title': _titleController.text.trim(),
+      'title': title,
       'note': _noteController.text.trim(),
     });
   }
@@ -603,12 +631,24 @@ class _EditLinkDialogState extends State<_EditLinkDialog> {
               overflow: TextOverflow.ellipsis,
             ),
             const SizedBox(height: 16),
+            Text(
+              'Add a meaningful title to search and find your saved link easily in the future.',
+              style: TextStyle(
+                fontSize: 12,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.white70
+                    : AppTheme.textSecondary,
+                height: 1.3,
+              ),
+            ),
+            const SizedBox(height: 16),
             TextField(
               controller: _titleController,
               autofocus: true,
               style: Theme.of(context).textTheme.bodyMedium,
               decoration: InputDecoration(
                 labelText: 'Title',
+                hintText: 'Enter link title',
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),

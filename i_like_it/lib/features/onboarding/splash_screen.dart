@@ -37,7 +37,7 @@ class _CustomSplashScreenState extends State<CustomSplashScreen> {
         children: [
           // Fullscreen background image
           Positioned.fill(
-            child: Image.asset('assets/flutter_splash.png', fit: BoxFit.cover),
+            child: Image.asset('assets/flutter_splash.png', fit: BoxFit.contain),
           ),
           // Animated progress indicator and complete text overlay (transparent background)
           Positioned(
@@ -100,14 +100,17 @@ class _AnimatedLoadingTextState extends State<AnimatedLoadingText> {
     final dots = '.' * _dotCount;
     final paddingDots = ' ' * (3 - _dotCount);
 
-    return Text(
-      'Your one-stop solution to Save, Organize & Share what you like.',
-      textAlign: TextAlign.center,
-      style: const TextStyle(
-        fontSize: 16,
-        fontWeight: FontWeight.w400,
-        fontFamily: 'Inter',
-        color: Colors.white,
+    return const Padding(
+      padding: EdgeInsets.symmetric(horizontal: 20.0),
+      child: Text(
+        'Your one-stop solution to Save, Organize\n& Share what you like.',
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          fontSize: 14.0,
+          fontWeight: FontWeight.w400,
+          fontFamily: 'Inter',
+          color: Colors.white,
+        ),
       ),
     );
   }

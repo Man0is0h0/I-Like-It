@@ -15,11 +15,13 @@ import '../../core/widgets/glass_container.dart'; // New
 class LinkScreen extends StatefulWidget {
   final int folderId;
   final String folderName;
+  final int? highlightLinkId;
 
   const LinkScreen({
     super.key,
     required this.folderId,
     required this.folderName,
+    this.highlightLinkId,
   });
 
   @override
@@ -31,6 +33,8 @@ class _LinkScreenState extends State<LinkScreen> {
   StreamSubscription? _syncSubscription;
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  final ScrollController _scrollController = ScrollController();
+  int? _highlightedLinkId;
 
   List<LinkItem> get _filteredLinks {
     if (_searchQuery.isEmpty) return links;
@@ -45,6 +49,7 @@ class _LinkScreenState extends State<LinkScreen> {
   @override
   void initState() {
     super.initState();
+    _highlightedLinkId = widget.highlightLinkId;
     _loadLinks();
 
     // Listen for background sync updates
@@ -59,6 +64,7 @@ class _LinkScreenState extends State<LinkScreen> {
   void dispose() {
     _syncSubscription?.cancel();
     _searchController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -68,6 +74,31 @@ class _LinkScreenState extends State<LinkScreen> {
     setState(() {
       links = result.map((e) => LinkItem.fromMap(e)).toList();
     });
+
+    if (_highlightedLinkId != null) {
+      final index = links.indexWhere((l) => l.id == _highlightedLinkId);
+      if (index != -1) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (_scrollController.hasClients) {
+            // Calculate estimated offset: top search field takes ~80 pixels, each item ~106 pixels
+            final offset = 80.0 + (index * 106.0);
+            _scrollController.animateTo(
+              offset,
+              duration: const Duration(milliseconds: 600),
+              curve: Curves.easeOutCubic,
+            );
+          }
+        });
+
+        Timer(const Duration(seconds: 2), () {
+          if (mounted) {
+            setState(() {
+              _highlightedLinkId = null;
+            });
+          }
+        });
+      }
+    }
   }
 
   Future<void> _deleteLink(LinkItem link) async {
@@ -333,6 +364,7 @@ class _LinkScreenState extends State<LinkScreen> {
           await _loadLinks();
         },
         child: CustomScrollView(
+          controller: _scrollController,
           slivers: [
             SliverAppBar(
               pinned: true,
@@ -503,6 +535,7 @@ class _LinkScreenState extends State<LinkScreen> {
                       padding: const EdgeInsets.only(bottom: 10),
                       child: LinkCard(
                         link: link,
+                        highlight: link.id == _highlightedLinkId,
                         onTap: () {
                           _showLinkDetailSheet(context, link);
                         },

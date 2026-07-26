@@ -297,11 +297,29 @@ class _DetailsDialog extends StatefulWidget {
 class _DetailsDialogState extends State<_DetailsDialog> {
   late TextEditingController _titleController;
   late TextEditingController _notesController;
+  late final bool _isGeneric;
+
+  bool _isGenericTitle(String title) {
+    final t = title.toLowerCase().trim();
+    return t == 'instagram - reel' || 
+           t == 'instagram link' || 
+           t == 'instagram' ||
+           t == 'instagram- reel' ||
+           t == 'shared link' ||
+           t == 'facebook' ||
+           t == 'facebook link' ||
+           t == 'facebook post' ||
+           t == 'facebook watch' ||
+           t == 'facebook video' ||
+           t.startsWith('facebook -') ||
+           t.startsWith('facebook-');
+  }
 
   @override
   void initState() {
     super.initState();
-    _titleController = TextEditingController(text: widget.initialTitle);
+    _isGeneric = _isGenericTitle(widget.initialTitle);
+    _titleController = TextEditingController(text: _isGeneric ? '' : widget.initialTitle);
     _notesController = TextEditingController();
   }
 
@@ -329,6 +347,15 @@ class _DetailsDialogState extends State<_DetailsDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Text(
+              'Add a meaningful title to search and find your saved link easily in the future.',
+              style: TextStyle(
+                fontSize: 12,
+                color: isDark ? Colors.white70 : AppTheme.textSecondary,
+                height: 1.3,
+              ),
+            ),
+            const SizedBox(height: 16),
             const Text(
               'Title',
               style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
@@ -339,7 +366,7 @@ class _DetailsDialogState extends State<_DetailsDialog> {
               autofocus: true,
               style: inputStyle,
               decoration: InputDecoration(
-                hintText: 'Link title',
+                hintText: 'Enter link title',
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: const BorderSide(color: AppTheme.borderColor),
@@ -396,17 +423,32 @@ class _DetailsDialogState extends State<_DetailsDialog> {
         ),
       ),
       actions: [
+        if (!_isGeneric)
+          TextButton(
+            onPressed: () => Navigator.pop(context, {
+              'title': widget.initialTitle,
+              'notes': '',
+            }),
+            child: const Text('Skip'),
+          ),
         TextButton(
-          onPressed: () => Navigator.pop(context, {
-            'title': widget.initialTitle,
-            'notes': '',
-          }),
-          child: const Text('Skip'),
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
         ),
         ElevatedButton(
           onPressed: () {
+            final title = _titleController.text.trim();
+            if (title.isEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Please enter a title to save this link'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+              return;
+            }
             Navigator.pop(context, {
-              'title': _titleController.text.trim(),
+              'title': title,
               'notes': _notesController.text.trim(),
             });
           },
