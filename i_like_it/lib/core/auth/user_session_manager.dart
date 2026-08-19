@@ -33,12 +33,12 @@ class UserSessionManager {
         _currentEmail = await _storage.read(key: _keyEmail);
         _currentUsername = await _storage.read(key: _keyUsername);
         _currentMobile = await _storage.read(key: _keyMobile);
-        print("UserSessionManager: Initialized with User ID: $_currentUserId");
+        assert(() { debugPrint("[DEV] UserSessionManager: Initialized. User ID present: ${_currentUserId != null}"); return true; }());
       } else {
-        print("UserSessionManager: Initialized fresh app State.");
+        assert(() { debugPrint("[DEV] UserSessionManager: Fresh app state."); return true; }());
       }
     } catch (e) {
-      print("UserSessionManager: Error initializing session: $e");
+      assert(() { debugPrint("[DEV] UserSessionManager: Error initializing session: $e"); return true; }());
     }
   }
 
@@ -87,6 +87,6 @@ class UserSessionManager {
     _currentUsername = null;
     _currentMobile = null;
     _hasCreatedFolder = false;
-    print("UserSessionManager: Session cleared.");
+    assert(() { debugPrint("[DEV] UserSessionManager: Session cleared."); return true; }());
   }
 }

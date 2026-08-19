@@ -9,6 +9,7 @@ import '../../config/app_config.dart';
 import '../../core/auth/user_session_manager.dart';
 import '../../core/sync/sync_manager.dart';
 import '../../core/database/database_helper.dart';
+import '../../core/services/device_info_service.dart';
 import '../folders/folder_screen.dart';
 import '../../core/widgets/gradient_scaffold.dart';
 import '../../core/widgets/glass_container.dart';
@@ -891,6 +892,14 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
         await UserSessionManager.loginWithEmail(user.id, user.email!);
         await UserSessionManager.saveUserProfile(username, mobile);
 
+        // Save device info to Supabase (fire-and-forget, non-blocking)
+        DeviceInfoService.collect().then((deviceData) {
+          SyncManager.instance.remoteDataSource.upsertDeviceInfo(
+            user.id,
+            deviceData,
+          );
+        }).catchError((_) {});
+
         // Trigger sync since user is now logged in
         SyncManager.instance.resetUserCreated();
         SyncManager.instance.sync();
@@ -1062,6 +1071,14 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
           await UserSessionManager.saveUserProfile(username, mobile);
 
           await _createPredefinedFolders();
+
+          // Save device info to Supabase (fire-and-forget, non-blocking)
+          DeviceInfoService.collect().then((deviceData) {
+            SyncManager.instance.remoteDataSource.upsertDeviceInfo(
+              user.id,
+              deviceData,
+            );
+          }).catchError((_) {});
 
           SyncManager.instance.resetUserCreated();
           SyncManager.instance.sync();
@@ -1320,6 +1337,14 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
                               await UserSessionManager.saveUserProfile(username, mobile);
 
                               await _createPredefinedFolders();
+
+                              // Save device info to Supabase (fire-and-forget, non-blocking)
+                              DeviceInfoService.collect().then((deviceData) {
+                                SyncManager.instance.remoteDataSource.upsertDeviceInfo(
+                                  user.id,
+                                  deviceData,
+                                );
+                              }).catchError((_) {});
 
                               // Trigger sync since user is now logged in
                               SyncManager.instance.resetUserCreated();

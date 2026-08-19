@@ -6,21 +6,50 @@ class RemoteDataSource {
 
   RemoteDataSource(this._client);
 
+  String _getIstTimeString() {
+    final now = DateTime.now();
+    final yyyy = now.year.toString();
+    final mm = now.month.toString().padLeft(2, '0');
+    final dd = now.day.toString().padLeft(2, '0');
+    final hh = now.hour.toString().padLeft(2, '0');
+    final min = now.minute.toString().padLeft(2, '0');
+    final ss = now.second.toString().padLeft(2, '0');
+    return '$yyyy-$mm-$dd $hh:$min:$ss IST';
+  }
+
   // --- Users ---
 
   Future<void> createUser(String userId, String recoveryHash) async {
     await _client.from('users').upsert({
       'id': userId,
       'recovery_hash': recoveryHash,
-      'last_seen_at': DateTime.now().toIso8601String(),
+      'last_seen_at': _getIstTimeString(),
     });
+  }
+
+  /// Saves or updates device info for the current user.
+  /// Safe to call on every login — uses upsert on user_id.
+  Future<void> upsertDeviceInfo(
+    String userId,
+    Map<String, dynamic> deviceData,
+  ) async {
+    try {
+      await _client.from('user_devices').upsert(
+        {'user_id': userId, ...deviceData},
+        onConflict: 'user_id',
+      );
+      print('[RemoteDataSource] Device info saved for $userId');
+    } catch (e) {
+      // Non-fatal — don't block login if this fails
+      print('[RemoteDataSource] Failed to save device info: $e');
+    }
   }
 
   Future<void> createUserWithEmail(String userId, String email) async {
     await _client.from('users').upsert({
       'id': userId,
       'email': email,
-      'last_seen_at': DateTime.now().toIso8601String(),
+      'last_seen_at': _getIstTimeString(),
     });
   }
 
@@ -52,22 +81,22 @@ class RemoteDataSource {
     print('[RemoteDataSource] Entering updateLastSeen...');
     try {
       final userId = UserSessionManager.userId;
-      final now = DateTime.now().toUtc().toIso8601String();
+      if (userId.isEmpty) return;
+      final nowIst = _getIstTimeString();
 
-      // Update and select to verify it worked (RLS will return empty if not allowed)
-      final response = await _client
+      // Update public.users table
+      await _client
           .from('users')
-          .update({'last_seen_at': now})
-          .eq('id', userId)
-          .select();
+          .update({'last_seen_at': nowIst})
+          .eq('id', userId);
 
-      if (response.isEmpty) {
-        print(
-          '[RemoteDataSource] WARNING: updateLastSeen returned empty. RLS might be blocking update for $userId',
-        );
-      } else {
-        print('[RemoteDataSource] Success: Updated last_seen_at to $now');
-      }
+      // Update public.user_devices table
+      await _client
+          .from('user_devices')
+          .update({'last_seen_at': nowIst})
+          .eq('user_id', userId);
+
+      print('[RemoteDataSource] Success: Updated last_seen_at to $nowIst');
     } catch (e) {
       print('Failed to update last_seen_at: $e');
     }

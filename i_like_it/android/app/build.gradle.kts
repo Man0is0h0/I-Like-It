@@ -50,6 +50,13 @@ android {
 
     buildTypes {
         release {
+            // R8 obfuscation & resource shrinking — prevents reverse engineering
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
             signingConfig = if (keystorePropertiesFile.exists()) {
                 signingConfigs.getByName("release")
             } else {

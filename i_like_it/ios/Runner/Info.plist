@@ -60,5 +60,11 @@
 				</array>
 			</dict>
 		</array>
+		<key>LSApplicationQueriesSchemes</key>
+		<array>
+			<string>http</string>
+			<string>https</string>
+			<string>googlechrome</string>
+		</array>
 	</dict>
 </plist>

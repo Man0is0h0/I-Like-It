@@ -42,7 +42,7 @@ class FolderScreen extends StatefulWidget {
 }
 
 class _FolderScreenState extends State<FolderScreen>
-    with WidgetsBindingObserver, SingleTickerProviderStateMixin {
+    with WidgetsBindingObserver, TickerProviderStateMixin {
   List<Folder> folders = [];
   List<LinkItem> recentLinks = [];
   int _totalLinksCount = 0;
@@ -52,6 +52,12 @@ class _FolderScreenState extends State<FolderScreen>
   StreamSubscription? _syncSubscription;
   late AnimationController _hintBounceController;
   late Animation<double> _hintBounceAnimation;
+  late AnimationController _hintFadeController;
+  late Animation<double> _hintFadeAnimation;
+  Timer? _hintDismissTimer;
+
+  // Static flag: true only for the first build after a cold start (process alive = not cold)
+  static bool _coldStartHintShown = false;
 
   Future<void> _checkFirstFolderHint() async {
     // Deprecated in favor of dynamic check in _loadFolders
@@ -70,6 +76,16 @@ class _FolderScreenState extends State<FolderScreen>
         parent: _hintBounceController,
         curve: Curves.easeInOut,
       ),
+    );
+
+    // Fade controller for the hint pill
+    _hintFadeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
+    _hintFadeAnimation = CurvedAnimation(
+      parent: _hintFadeController,
+      curve: Curves.easeInOut,
     );
 
     WidgetsBinding.instance.addObserver(this); // Register observer
@@ -91,6 +107,27 @@ class _FolderScreenState extends State<FolderScreen>
         _loadFolders(silent: true);
       }
     });
+
+    // Show hint on cold start only (static flag resets when process dies)
+    if (!_coldStartHintShown) {
+      _coldStartHintShown = true;
+      _triggerColdStartHint();
+    }
+  }
+
+  void _triggerColdStartHint() {
+    // Wait for first frame before starting animation
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      setState(() => _showCreateFolderHint = true);
+      await _hintFadeController.forward(); // fade in
+      // Stay visible for 2 seconds
+      _hintDismissTimer = Timer(const Duration(seconds: 2), () async {
+        if (!mounted) return;
+        await _hintFadeController.reverse(); // fade out
+        if (mounted) setState(() => _showCreateFolderHint = false);
+      });
+    });
   }
 
   // ... (dispose and didChangeAppLifecycleState remain same) ...
@@ -100,6 +137,8 @@ class _FolderScreenState extends State<FolderScreen>
     WidgetsBinding.instance.removeObserver(this);
     _syncSubscription?.cancel();
     _hintBounceController.dispose();
+    _hintFadeController.dispose();
+    _hintDismissTimer?.cancel();
     super.dispose();
   }
 
@@ -277,11 +316,7 @@ class _FolderScreenState extends State<FolderScreen>
 
     if (!mounted) return;
 
-    const predefinedNames = {'Food', 'Travel', 'Shopping', 'Sports', 'Knowledge', 'Movies'};
     final loadedFolders = result.map((e) => Folder.fromMap(e)).toList();
-    final hasCustomFolder = loadedFolders.any((f) => !predefinedNames.contains(f.name));
-
-    final shouldShowHint = !hasCustomFolder;
 
     setState(() {
       folders = loadedFolders;
@@ -292,7 +327,7 @@ class _FolderScreenState extends State<FolderScreen>
       });
       recentLinks = linkResult.map((e) => LinkItem.fromMap(e)).toList();
       _totalLinksCount = totalLinks;
-      _showCreateFolderHint = shouldShowHint;
+      // _showCreateFolderHint is now managed by _triggerColdStartHint only
       // Only clear loading state if this was a blocking load
       // This prevents background silent refreshes (e.g. sync) from interrupting the welcome animation
       if (!silent) {
@@ -1053,46 +1088,65 @@ class _FolderScreenState extends State<FolderScreen>
         mainAxisSize: MainAxisSize.min,
         children: [
           if (_showCreateFolderHint) ...[
-            TweenAnimationBuilder<double>(
-              tween: Tween(begin: 0.0, end: 1.0),
-              duration: const Duration(milliseconds: 600),
-              curve: Curves.easeOutBack,
-              builder: (context, scaleValue, child) {
-                return Transform.scale(
-                  scale: scaleValue,
-                  child: AnimatedBuilder(
-                    animation: _hintBounceAnimation,
-                    builder: (context, child) {
-                      return Transform.translate(
-                        offset: Offset(0, -_hintBounceAnimation.value),
-                        child: Container(
-                          margin: const EdgeInsets.only(bottom: 6),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                'Create your own folders',
-                                style: TextStyle(
-                                  color: colorScheme.primary,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 0.5,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Icon(
-                                Icons.keyboard_arrow_down_rounded,
-                                color: colorScheme.primary.withOpacity(0.8),
-                                size: 18,
-                              ),
-                            ],
-                          ),
+            FadeTransition(
+              opacity: _hintFadeAnimation,
+              child: AnimatedBuilder(
+                animation: _hintBounceAnimation,
+                builder: (context, child) {
+                  return Transform.translate(
+                    offset: Offset(0, -_hintBounceAnimation.value),
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 10),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: colorScheme.surface.withOpacity(0.85),
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(
+                          color: colorScheme.primary.withOpacity(0.35),
+                          width: 1.2,
                         ),
-                      );
-                    },
-                  ),
-                );
-              },
+                        boxShadow: [
+                          BoxShadow(
+                            color: colorScheme.primary.withOpacity(0.18),
+                            blurRadius: 16,
+                            spreadRadius: 1,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.create_new_folder_rounded,
+                            color: colorScheme.primary,
+                            size: 16,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Tap + to create your own folder',
+                            style: TextStyle(
+                              color: colorScheme.onSurface,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.3,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Icon(
+                            Icons.keyboard_arrow_down_rounded,
+                            color: colorScheme.primary,
+                            size: 18,
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
             ),
           ],
           FloatingActionButton(
